@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, FEATURES, type FeatureKey } from "@/lib/items-store";
@@ -328,6 +329,7 @@ function ManualFlow() {
   const [mode, setMode] = useState<null | "image" | "qr">(null);
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [qrText, setQrText] = useState("");
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<ManualResult | null>(null);
@@ -361,18 +363,33 @@ function ManualFlow() {
   const next = async () => {
     if (!ready) { setTried(true); return; }
     setStep(1);
-    const url = mode === "image" ? API.manualImage : API.manualQr;
-    const payload = mode === "image" ? { type: "manual-image", photo } : { type: "manual-qr", qr: qrText.trim() };
-    const data = await callApi(url, payload);
-    setResult({
-      name:     pick(data, "name", "product", "productName", "제품명") || "내 새 물건",
-      brand:    pick(data, "brand", "브랜드"),
-      summary:  pick(data, "summary", "요약"),
-      usage:    pick(data, "usage", "howTo", "사용법", "사용방법"),
-      cautions: pick(data, "cautions", "warning", "주의사항"),
-      care:     pick(data, "care", "maintenance", "관리방법"),
-    });
-    setStep(2);
+    try {
+      if (mode === "image") {
+        if (!photoFile) throw new Error("이미지 파일이 없어요");
+        const formData = new FormData();
+        formData.append("image", photoFile);
+        const response = await fetch(API.manualImage, { method: "POST", body: formData });
+        if (!response.ok) throw new Error(`서버 오류 (${response.status})`);
+        const data = await response.json();
+        const summary = typeof data?.summary === "string" ? data.summary : "";
+        setResult({ name: "내 새 물건", brand: "", summary, usage: "", cautions: "", care: "" });
+      } else {
+        const data = await callApi(API.manualQr, { type: "manual-qr", qr: qrText.trim() });
+        setResult({
+          name:     pick(data, "name", "product", "productName", "제품명") || "내 새 물건",
+          brand:    pick(data, "brand", "브랜드"),
+          summary:  pick(data, "summary", "요약"),
+          usage:    pick(data, "usage", "howTo", "사용법", "사용방법"),
+          cautions: pick(data, "cautions", "warning", "주의사항"),
+          care:     pick(data, "care", "maintenance", "관리방법"),
+        });
+      }
+      setStep(2);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "분석에 실패했어요";
+      toast.error("이미지 분석에 실패했어요", { description: message });
+      setStep(0);
+    }
   };
 
   const finish = () => {
@@ -400,7 +417,7 @@ function ManualFlow() {
           {mode === "image" ? (
             <UploadBox
               photo={photo}
-              onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
+              onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }}
               label="탭하여 사용서 추가"
               hint="PNG · JPG · PDF"
               icon="📖"
@@ -409,7 +426,7 @@ function ManualFlow() {
             <div className="mt-5 space-y-3">
               <UploadBox
                 photo={photo}
-                onFile={async (f) => { setPhoto(await readFile(f)); setQrText(f.name); setTried(false); }}
+                onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setQrText(f.name); setTried(false); }}
                 label="QR 이미지 업로드"
                 hint="또는 아래에 QR 링크 입력"
                 icon="🔳"
@@ -427,7 +444,7 @@ function ManualFlow() {
           <PrimaryButton onClick={next}>분석 시작</PrimaryButton>
         </section>
       )}
-      {step === 1 && <LoadingScene message="도깨비가 사용서를 읽고 있어요!" swinging />}
+      {step === 1 && <LoadingScene message="이미지를 분석 중입니다..." swinging />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
           <h1 className="text-2xl font-bold">사용법 정리 결과</h1>
