@@ -351,13 +351,19 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
     setStep(1);
     try {
       const data = await postImage(API.proof, photoFile);
+      const structuredDate = pick(data, "purchase_date", "date", "purchaseDate", "구매일");
+      const summaryText = pick(data, "summary", "요약");
+      const resolvedDate =
+        structuredDate ||
+        extractPurchaseDate(summaryText, data) ||
+        new Date().toISOString().slice(0, 10);
       setResult({
         place: pick(data, "store_name", "place", "store", "purchasePlace", "구매처"),
-        date:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
+        date:  resolvedDate,
         price: pick(data, "total_price", "price", "amount", "구매금액"),
         name:  pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") || "내 새 물건",
         brand: pick(data, "brand", "브랜드"),
-        summary: pick(data, "summary", "요약"),
+        summary: summaryText,
         extras: collectExtras(data),
         raw: data,
       });
