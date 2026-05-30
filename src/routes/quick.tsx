@@ -11,7 +11,6 @@ export const Route = createFileRoute("/quick")({
 });
 
 const API_ANALYZE = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
-const API_CHARACTER = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
 
 function readFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
