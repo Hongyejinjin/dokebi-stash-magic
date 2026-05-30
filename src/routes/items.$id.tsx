@@ -69,32 +69,15 @@ function ItemDetail() {
           </div>
         )}
 
-        <Section title="물건 프로필">
-          <Row label="브랜드/상품명" value={[item.brand, item.name].filter(Boolean).join(" ") || item.name} />
-          <Row label="구매 날짜" value={item.purchaseDate} />
-          <Row label="구매처" value={item.purchasePlace} />
-          <Row label="구매 금액" value={item.price} />
-          <Row label="보증 기간" value={item.warrantyUntil} />
-        </Section>
-
-        <Section title="설명서 요약">
-          <p className="whitespace-pre-line text-sm text-foreground/80">
-            {item.summary || item.usage || "—"}
-          </p>
-        </Section>
-
         <Section title="도깨비 메시지">
-          <p className="whitespace-pre-line text-sm text-foreground/80">
-            {item.speech || "—"}
-          </p>
-        </Section>
-
-        {item.analysis && (
-          <section className="mt-4">
-            <h2 className="mb-3 px-1 text-sm font-bold text-primary">n8n 원본 분석</h2>
+          {item.analysis ? (
             <AnalysisView data={item.analysis} />
-          </section>
-        )}
+          ) : (
+            <p className="whitespace-pre-line text-sm text-foreground/80">
+              {item.speech || item.summary || item.usage || "—"}
+            </p>
+          )}
+        </Section>
 
         <button
           onClick={async () => { await removeItem(item.id); navigate({ to: "/my" }); }}
