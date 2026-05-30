@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
-import { FEATURES, getItem, removeItem, type Item } from "@/lib/items-store";
+import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
 
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
@@ -14,6 +14,7 @@ function ItemDetail() {
   const navigate = useNavigate();
   const [item, setItem] = useState<Item | undefined>();
   useEffect(() => { setItem(getItem(id)); }, [id]);
+  const { photo, characterUrl } = useItemImages(item?.id);
 
   if (!item) {
     return (
@@ -38,8 +39,8 @@ function ItemDetail() {
       <main className="mx-auto max-w-2xl px-4 pb-20">
         <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
           <div className="aspect-[4/3] bg-mint/40">
-            {item.characterUrl || item.photo ? (
-              <img src={item.characterUrl || item.photo} alt={item.name} className="size-full object-cover" />
+            {characterUrl || photo ? (
+              <img src={characterUrl || photo} alt={item.name} className="size-full object-cover" />
             ) : (
               <div className="flex size-full items-center justify-center"><Dokkaebi size={140} /></div>
             )}
@@ -89,7 +90,7 @@ function ItemDetail() {
         </Section>
 
         <button
-          onClick={() => { removeItem(item.id); navigate({ to: "/my" }); }}
+          onClick={async () => { await removeItem(item.id); navigate({ to: "/my" }); }}
           className="mt-6 w-full rounded-full border border-destructive/40 bg-card py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
         >
           삭제하기
