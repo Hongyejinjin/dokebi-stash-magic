@@ -154,30 +154,61 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-function pickPrimaryContent(
-  d: Record<string, unknown> | null,
-): { value: string; sourceKey: string } {
-  if (!d) return { value: "데이터 없음", sourceKey: "—" };
-  const order = ["markdown", "html", "text"];
+// markdown > html > text > 그 외 텍스트성 키
+const PRIMARY_KEYS = ["markdown", "html", "text", "output", "content", "result", "message", "answer", "response", "summary", "요약"];
 
-  const search = (obj: unknown, path: string[] = []): { value: string; sourceKey: string } | null => {
-    if (!obj || typeof obj !== "object") return null;
+function pickPrimaryContent(
+  d: unknown,
+): { value: string; sourceKey: string } {
+  if (d == null) return { value: "데이터 없음", sourceKey: "—" };
+
+  // 문자열(또는 배열의 첫 원소 문자열)을 그대로 받는 경우
+  if (typeof d === "string") {
+    const s = d.trim();
+    return { value: s || "데이터 없음", sourceKey: "(root)" };
+  }
+
+  const search = (
+    obj: unknown,
+    path: string[] = [],
+  ): { value: string; sourceKey: string } | null => {
+    if (obj == null) return null;
+    if (Array.isArray(obj)) {
+      for (let i = 0; i < obj.length; i++) {
+        const found = search(obj[i], [...path, `[${i}]`]);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (typeof obj !== "object") return null;
     const rec = obj as Record<string, unknown>;
-    for (const key of order) {
+    // 우선순위 키 먼저
+    for (const key of PRIMARY_KEYS) {
       const v = rec[key];
       if (typeof v === "string" && v.trim()) {
-        const fullKey = [...path, key].join(".");
+        const fullKey = [...path, key].join(".") || key;
         const out = key === "html" ? htmlToText(v) : v;
         return { value: out.trim() || "데이터 없음", sourceKey: fullKey };
       }
     }
+    // 중첩 객체/배열 재귀 탐색
     for (const [k, v] of Object.entries(rec)) {
       if (v && typeof v === "object") {
         const found = search(v, [...path, k]);
         if (found) return found;
       }
     }
-    return null;
+    // 마지막 보루: 가장 긴 문자열 값
+    let best: { value: string; sourceKey: string } | null = null;
+    for (const [k, v] of Object.entries(rec)) {
+      if (typeof v === "string" && v.trim()) {
+        const cand = v.trim();
+        if (!best || cand.length > best.value.length) {
+          best = { value: cand, sourceKey: [...path, k].join(".") || k };
+        }
+      }
+    }
+    return best;
   };
 
   return search(d) ?? { value: "데이터 없음", sourceKey: "—" };
@@ -238,11 +269,14 @@ function QuickPage() {
       return;
     }
 
-    const summary = pick(data, "summary", "요약");
+    const primary = pickPrimaryContent(data);
+    const summary = pick(data, "summary", "요약") || (primary.value !== "데이터 없음" ? primary.value : "");
     const hasReceipt =
       pick(data, "purchase_date") || pick(data, "store_name") || pick(data, "total_price");
     const k: DocKind = hasReceipt ? "receipt" : detectKind(data);
-    const lines = summary ? [summary] : summarize(k, data);
+    const lines = summary
+      ? summary.split(/\n+/).map((s) => s.trim()).filter(Boolean).slice(0, 6)
+      : summarize(k, data);
     const name =
       pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") ||
       "내 새 친구";
