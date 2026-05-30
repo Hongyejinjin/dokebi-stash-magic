@@ -269,11 +269,14 @@ function QuickPage() {
       return;
     }
 
-    const summary = pick(data, "summary", "요약");
+    const primary = pickPrimaryContent(data);
+    const summary = pick(data, "summary", "요약") || (primary.value !== "데이터 없음" ? primary.value : "");
     const hasReceipt =
       pick(data, "purchase_date") || pick(data, "store_name") || pick(data, "total_price");
     const k: DocKind = hasReceipt ? "receipt" : detectKind(data);
-    const lines = summary ? [summary] : summarize(k, data);
+    const lines = summary
+      ? summary.split(/\n+/).map((s) => s.trim()).filter(Boolean).slice(0, 6)
+      : summarize(k, data);
     const name =
       pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") ||
       "내 새 친구";
