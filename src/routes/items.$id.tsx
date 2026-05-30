@@ -69,25 +69,24 @@ function ItemDetail() {
           </div>
         )}
 
-        <Section title="구매 정보">
-          <Row label="구매일" value={item.purchaseDate} />
+        <Section title="물건 프로필">
+          <Row label="브랜드/상품명" value={[item.brand, item.name].filter(Boolean).join(" ") || item.name} />
+          <Row label="구매 날짜" value={item.purchaseDate} />
           <Row label="구매처" value={item.purchasePlace} />
-          <Row label="가격" value={item.price} />
-          <Row label="시리얼" value={item.serial} />
+          <Row label="구매 금액" value={item.price} />
+          <Row label="보증 기간" value={item.warrantyUntil} />
         </Section>
 
-        <Section title="보증 / A/S">
-          <Row label="보증 만료" value={item.warrantyUntil} />
-          <Row label="A/S 정보" value={item.asInfo} />
+        <Section title="설명서 요약">
+          <p className="whitespace-pre-line text-sm text-foreground/80">
+            {item.summary || item.usage || "—"}
+          </p>
         </Section>
 
-        <Section title="사용법 요약">
-          <p className="text-sm text-foreground/80 whitespace-pre-line">{item.usage || "—"}</p>
-        </Section>
-
-        <Section title="도깨비 관리 팁">
-          <Row label="주의사항" value={item.cautions} />
-          <Row label="관리 주기" value={item.careCycle} />
+        <Section title="도깨비 메시지">
+          <p className="whitespace-pre-line text-sm text-foreground/80">
+            {item.speech || "—"}
+          </p>
         </Section>
 
         {item.analysis && (

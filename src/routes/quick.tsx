@@ -129,7 +129,7 @@ function QuickPage() {
   const [item, setItem] = useState<Item | null>(null);
   const [kind, setKind] = useState<DocKind>("item");
   const [bullets, setBullets] = useState<string[]>([]);
-  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [itemProfile, setItemProfile] = useState<Record<string, unknown> | null>(null);
   const [characterUrl, setCharacterUrl] = useState<string>();
   const [characterReady, setCharacterReady] = useState(false);
 
@@ -180,7 +180,7 @@ function QuickPage() {
     setItem(saved);
     setKind(k);
     setBullets(lines);
-    setAnalysis(data);
+    setItemProfile(data);
     setStep(2);
 
     // Reuse analyze response for character image if present; no extra call.
@@ -284,9 +284,9 @@ function QuickPage() {
               </ul>
             </div>
 
-            {analysis && (
+            {itemProfile && (
               <div className="mx-auto mt-4 max-w-sm">
-                <AnalysisView data={analysis} />
+                <AnalysisView data={itemProfile} />
               </div>
             )}
 
