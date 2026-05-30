@@ -70,13 +70,11 @@ function ItemDetail() {
         )}
 
         <Section title="도깨비 메시지">
-          {item.analysis ? (
-            <AnalysisView data={item.analysis} />
-          ) : (
-            <p className="whitespace-pre-line text-sm text-foreground/80">
-              {item.speech || item.summary || item.usage || "—"}
-            </p>
-          )}
+          <p className="whitespace-pre-line text-sm text-foreground/80">
+            {item.analysis
+              ? pickPrimaryContent(item.analysis).value
+              : item.speech || item.summary || item.usage || "—"}
+          </p>
         </Section>
 
         <button
