@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
-import { AnalysisView } from "@/lib/analysis-render";
+import { pickPrimaryContent } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
