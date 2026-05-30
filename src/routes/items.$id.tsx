@@ -115,7 +115,9 @@ function isGenericDateKey(key: string): boolean {
 }
 
 function hasReceiptSignal(item: Item): boolean {
+  if (item.feature === "proof") return true;
   const hay = JSON.stringify({
+    feature: item.feature,
     docKind: item.docKind,
     name: item.name,
     speech: item.speech,

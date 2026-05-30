@@ -378,6 +378,7 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
     if (!result) return;
     addItem({
       feature: "proof",
+      docKind: "receipt",
       photo,
       name: result.name,
       brand: result.brand,
