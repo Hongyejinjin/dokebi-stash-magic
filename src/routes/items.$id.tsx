@@ -30,6 +30,17 @@ function ItemDetail() {
     );
   }
 
+  function daysSinceText(purchaseDate?: string) {
+    if (!purchaseDate) return "만난 날짜를 아직 몰라요";
+    const purchase = new Date(purchaseDate);
+    const today = new Date();
+    purchase.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today.getTime() - purchase.getTime()) / 86_400_000);
+    const days = Math.max(1, diffDays + 1);
+    return `이 물건이랑 만난 지 벌써 ${days}일째야!`;
+  }
+
   const daysLeft = item.warrantyUntil
     ? Math.ceil((new Date(item.warrantyUntil).getTime() - Date.now()) / 86400_000)
     : null;
@@ -68,6 +79,13 @@ function ItemDetail() {
             </div>
           </div>
         )}
+
+        <div className="relative mt-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
+          <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
+          <p className="text-sm font-medium text-foreground/90">
+            {daysSinceText(item.purchaseDate)}
+          </p>
+        </div>
 
         <Section title="도깨비 메시지">
           <p className="whitespace-pre-line text-sm text-foreground/80">
