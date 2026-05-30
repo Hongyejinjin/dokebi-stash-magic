@@ -2,27 +2,102 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
-import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
+import { FEATURES, getItem, removeItem, useItemImages, type DocKind, type Item } from "@/lib/items-store";
 import { pickPrimaryContent } from "@/lib/analysis-render";
 
-function parsePurchaseDate(input: string): Date | null {
+function makeUtcDate(year: number, month: number, day: number): Date | null {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date;
+}
+
+function parsePurchaseDate(input: unknown): Date | null {
   if (!input) return null;
   const s = String(input).trim();
   // Korean: 2024년 5월 20일
   const kr = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
-  if (kr) return new Date(Date.UTC(+kr[1], +kr[2] - 1, +kr[3]));
+  if (kr) return makeUtcDate(+kr[1], +kr[2], +kr[3]);
   // YYYY[-./]MM[-./]DD
-  const ymd = s.match(/^(\d{4})[-./\s](\d{1,2})[-./\s](\d{1,2})/);
-  if (ymd) return new Date(Date.UTC(+ymd[1], +ymd[2] - 1, +ymd[3]));
+  const ymd = s.match(/(\d{4})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})/);
+  if (ymd) return makeUtcDate(+ymd[1], +ymd[2], +ymd[3]);
+  // YYYYMMDD
+  const compact = s.match(/\b(\d{4})(\d{2})(\d{2})\b/);
+  if (compact) return makeUtcDate(+compact[1], +compact[2], +compact[3]);
   // DD[-./]MM[-./]YYYY
-  const dmy = s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})/);
+  const dmy = s.match(/\b(\d{1,2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{2,4})\b/);
   if (dmy) {
     let y = +dmy[3];
     if (y < 100) y += 2000;
-    return new Date(Date.UTC(y, +dmy[2] - 1, +dmy[1]));
+    return makeUtcDate(y, +dmy[2], +dmy[1]);
   }
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
+const DATE_VALUE_PATTERN = String.raw`\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일?|\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{1,2}|\b\d{8}\b|\b\d{1,2}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{2,4}\b`;
+const PURCHASE_DATE_LABEL_PATTERN = new RegExp(
+  String.raw`(?:구매\s*(?:날짜|일)|구입\s*(?:날짜|일)|결제\s*(?:날짜|일)|거래\s*(?:날짜|일시)|매입\s*(?:날짜|일)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
+  "i",
+);
+const ANY_DATE_PATTERN = new RegExp(`(${DATE_VALUE_PATTERN})`, "i");
+
+function pickDateFromText(text: unknown, allowAnyDate = false): string | undefined {
+  if (typeof text !== "string" || !text.trim()) return undefined;
+  const labeled = text.match(PURCHASE_DATE_LABEL_PATTERN)?.[1];
+  if (labeled && parsePurchaseDate(labeled)) return labeled;
+  if (!allowAnyDate) return undefined;
+  const anyDate = text.match(ANY_DATE_PATTERN)?.[1];
+  return anyDate && parsePurchaseDate(anyDate) ? anyDate : undefined;
+}
+
+function normalizeFieldKey(key: string): string {
+  return key.replace(/[\s_-]+/g, "").toLowerCase();
+}
+
+function isPurchaseDateKey(key: string): boolean {
+  const normalized = normalizeFieldKey(key);
+  return [
+    "purchasedate", "purchaseday", "purchasedat", "orderdate", "paymentdate", "transactiondate", "receiptdate",
+    "구매일", "구매날짜", "구입일", "구입날짜", "결제일", "결제날짜", "거래일", "거래일시", "매입일", "매입날짜",
+  ].includes(normalized) || (normalized.includes("purchase") && normalized.includes("date"));
+}
+
+function isGenericDateKey(key: string): boolean {
+  return ["date", "day", "일자", "날짜"].includes(normalizeFieldKey(key));
+}
+
+function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | undefined {
+  const allowGenericDate = kind === "receipt";
+  const walk = (value: unknown): string | undefined => {
+    if (!value || typeof value !== "object") return undefined;
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      const keyMatches = isPurchaseDateKey(key) || (allowGenericDate && isGenericDateKey(key));
+      if (keyMatches) {
+        const direct = typeof entry === "string" || typeof entry === "number" ? String(entry) : undefined;
+        if (direct && parsePurchaseDate(direct)) return direct;
+      }
+      const textDate = pickDateFromText(entry, allowGenericDate && typeof entry === "string");
+      if (textDate) return textDate;
+      if (entry && typeof entry === "object") {
+        const nested = walk(entry);
+        if (nested) return nested;
+      }
+    }
+    return undefined;
+  };
+  return walk(data);
+}
+
+function resolvePurchaseDate(item: Item): string | undefined {
+  if (item.purchaseDate && parsePurchaseDate(item.purchaseDate)) return item.purchaseDate;
+  const analysisDate = findPurchaseDateInAnalysis(item.analysis, item.docKind);
+  if (analysisDate) return analysisDate;
+  if (item.analysis) {
+    const primaryDate = pickDateFromText(pickPrimaryContent(item.analysis).value, item.docKind === "receipt");
+    if (primaryDate) return primaryDate;
+  }
+  return pickDateFromText(item.speech) || pickDateFromText(item.summary) || pickDateFromText(item.usage);
 }
 
 export const Route = createFileRoute("/items/$id")({
