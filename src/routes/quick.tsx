@@ -137,6 +137,52 @@ function toEntries(d: Record<string, unknown>): Array<[string, string]> {
     .map(([k, v]) => [labelize(k), formatValue(k, v)] as [string, string]);
 }
 
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function pickPrimaryContent(
+  d: Record<string, unknown> | null,
+): { value: string; sourceKey: string } {
+  if (!d) return { value: "데이터 없음", sourceKey: "—" };
+  const order = ["markdown", "html", "text"];
+
+  const search = (obj: unknown, path: string[] = []): { value: string; sourceKey: string } | null => {
+    if (!obj || typeof obj !== "object") return null;
+    const rec = obj as Record<string, unknown>;
+    for (const key of order) {
+      const v = rec[key];
+      if (typeof v === "string" && v.trim()) {
+        const fullKey = [...path, key].join(".");
+        const out = key === "html" ? htmlToText(v) : v;
+        return { value: out.trim() || "데이터 없음", sourceKey: fullKey };
+      }
+    }
+    for (const [k, v] of Object.entries(rec)) {
+      if (v && typeof v === "object") {
+        const found = search(v, [...path, k]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  return search(d) ?? { value: "데이터 없음", sourceKey: "—" };
+}
+
 function summarize(kind: DocKind, d: Record<string, unknown>): string[] {
   const out: string[] = [];
   const push = (l: string, v: string) => { if (v) out.push(`${l}: ${v}`); };
@@ -340,6 +386,22 @@ function QuickPage() {
                 </dl>
               </div>
             )}
+
+            {/* Primary content (markdown > html > text) */}
+            {analysis && (() => {
+              const { value, sourceKey } = pickPrimaryContent(analysis);
+              return (
+                <div className="mx-auto mt-4 max-w-sm rounded-3xl border border-border bg-card p-5 shadow-soft">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-primary">주요 내용</div>
+                    <div className="text-[10px] text-muted-foreground">source: {sourceKey}</div>
+                  </div>
+                  <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm text-foreground/90">
+                    {value}
+                  </pre>
+                </div>
+              );
+            })()}
 
             <div className="mt-6 flex justify-center gap-2">
               <button
