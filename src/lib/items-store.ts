@@ -34,6 +34,7 @@ export type Item = {
   careCycle?: string;
   repairs?: RepairLog[];
   speech?: string;
+  analysis?: Record<string, unknown>;
   createdAt: number;
 };
 
