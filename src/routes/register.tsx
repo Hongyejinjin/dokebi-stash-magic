@@ -17,8 +17,8 @@ export const Route = createFileRoute("/register")({
 });
 
 const API = {
-  proof: "https://hjinjin.app.n8n.cloud/webhook-test/item-goblin-mvp",
-  manualImage: "https://hjinjin.app.n8n.cloud/webhook-test/item-goblin-mvp",
+  proof: "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2",
+  manualImage: "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2",
   manualQr: "https://hjinjin.app.n8n.cloud/webhook-test/22ab0fdf-3412-4fb6-9484-f63367e25694",
   warranty: "https://hjinjin.app.n8n.cloud/webhook-test/92a743f7-5148-48a3-9d87-acc4dba4db9c",
 };
