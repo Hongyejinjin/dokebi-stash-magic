@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Dokkaebi } from "@/components/Dokkaebi";
+import { Dokkaebi, toneFromKey } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, type FeatureKey, useItems } from "@/lib/items-store";
 import { ItemThumb } from "@/components/ItemThumb";
@@ -45,9 +45,12 @@ function MyPage() {
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.map((it) => (
-              <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="group overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
-                <div className="aspect-square overflow-hidden bg-mint/40">
+              <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
+                <div className="relative aspect-square overflow-hidden bg-mint/40">
                   <ItemThumb id={it.id} name={it.name} className="size-full object-cover transition group-hover:scale-105" />
+                  <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-md">
+                    <Dokkaebi size={48} tone={toneFromKey(it.id)} swinging />
+                  </div>
                 </div>
                 <div className="p-3">
                   <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>
