@@ -389,19 +389,6 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
         <section className="mt-6 animate-float-up">
           <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">정리된 증빙 정보예요</h1>
-          <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
-            <ResultRow label="상품명" value={result.name} />
-            <ResultRow label="브랜드" value={result.brand} />
-            <ResultRow label="구매처" value={result.place} />
-            <ResultRow label="구매일" value={result.date} />
-            <ResultRow label="구매 금액" value={result.price} />
-            {result.extras.map((e) => (
-              <div key={e.label}>
-                <div className="text-xs font-semibold text-muted-foreground">{e.label}</div>
-                <p className="mt-1 whitespace-pre-line text-sm text-foreground">{e.value}</p>
-              </div>
-            ))}
-          </div>
           {result.summary && (
             <div className="mt-4 rounded-3xl border border-border bg-mint/20 p-5 shadow-soft">
               <div className="text-xs font-bold text-primary">도깨비가 정리한 전체 내용</div>
