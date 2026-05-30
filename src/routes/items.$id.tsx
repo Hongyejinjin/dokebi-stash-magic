@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
-import { AnalysisView } from "@/lib/analysis-render";
+import { pickPrimaryContent } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
@@ -70,13 +70,11 @@ function ItemDetail() {
         )}
 
         <Section title="도깨비 메시지">
-          {item.analysis ? (
-            <AnalysisView data={item.analysis} />
-          ) : (
-            <p className="whitespace-pre-line text-sm text-foreground/80">
-              {item.speech || item.summary || item.usage || "—"}
-            </p>
-          )}
+          <p className="whitespace-pre-line text-sm text-foreground/80">
+            {item.analysis
+              ? pickPrimaryContent(item.analysis).value
+              : item.speech || item.summary || item.usage || "—"}
+          </p>
         </Section>
 
         <button
