@@ -7,7 +7,9 @@ type Props = {
   tone?: DokkaebiTone;
 };
 
-export type DokkaebiTone = "mint" | "pink" | "sky" | "lemon" | "lilac" | "peach" | "sage" | "coral";
+export type DokkaebiTone =
+  | "mint" | "pink" | "sky" | "lemon" | "lilac" | "peach" | "sage" | "coral"
+  | "rose" | "aqua" | "violet" | "amber" | "teal" | "indigo" | "magenta" | "olive";
 
 const TONES: Record<DokkaebiTone, { body: string; belly: string; horn: string }> = {
   mint:   { body: "oklch(0.88 0.11 165)", belly: "oklch(0.96 0.04 165)", horn: "oklch(0.55 0.09 170)" },
@@ -18,6 +20,14 @@ const TONES: Record<DokkaebiTone, { body: string; belly: string; horn: string }>
   peach:  { body: "oklch(0.87 0.10 50)",  belly: "oklch(0.96 0.04 50)",  horn: "oklch(0.58 0.11 50)"  },
   sage:   { body: "oklch(0.86 0.07 145)", belly: "oklch(0.96 0.03 145)", horn: "oklch(0.5 0.08 150)"  },
   coral:  { body: "oklch(0.82 0.13 35)",  belly: "oklch(0.95 0.05 35)",  horn: "oklch(0.55 0.13 30)"  },
+  rose:    { body: "oklch(0.82 0.12 0)",   belly: "oklch(0.95 0.05 0)",   horn: "oklch(0.5 0.13 5)"    },
+  aqua:    { body: "oklch(0.86 0.10 195)", belly: "oklch(0.96 0.04 195)", horn: "oklch(0.52 0.10 200)" },
+  violet:  { body: "oklch(0.78 0.13 285)", belly: "oklch(0.94 0.05 285)", horn: "oklch(0.48 0.14 285)" },
+  amber:   { body: "oklch(0.84 0.13 70)",  belly: "oklch(0.96 0.05 70)",  horn: "oklch(0.55 0.13 65)"  },
+  teal:    { body: "oklch(0.78 0.10 185)", belly: "oklch(0.94 0.04 185)", horn: "oklch(0.45 0.09 185)" },
+  indigo:  { body: "oklch(0.74 0.11 265)", belly: "oklch(0.93 0.04 265)", horn: "oklch(0.42 0.13 265)" },
+  magenta: { body: "oklch(0.78 0.15 330)", belly: "oklch(0.94 0.06 330)", horn: "oklch(0.48 0.16 330)" },
+  olive:   { body: "oklch(0.82 0.09 110)", belly: "oklch(0.95 0.04 110)", horn: "oklch(0.48 0.09 110)" },
 };
 
 export const DOKKAEBI_TONES = Object.keys(TONES) as DokkaebiTone[];
@@ -26,6 +36,11 @@ export function toneFromKey(key: string): DokkaebiTone {
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
   return DOKKAEBI_TONES[h % DOKKAEBI_TONES.length];
+}
+
+/** Assign a distinct tone by stable index so adjacent cards never repeat. */
+export function toneByIndex(index: number): DokkaebiTone {
+  return DOKKAEBI_TONES[((index % DOKKAEBI_TONES.length) + DOKKAEBI_TONES.length) % DOKKAEBI_TONES.length];
 }
 
 /** Cute baby dokkaebi (goblin) with horns and a wand. */
