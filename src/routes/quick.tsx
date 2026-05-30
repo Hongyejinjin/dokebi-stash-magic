@@ -67,9 +67,10 @@ function summarize(kind: DocKind, d: Record<string, unknown>): string[] {
   const out: string[] = [];
   const push = (l: string, v: string) => { if (v) out.push(`${l}: ${v}`); };
   if (kind === "receipt") {
-    push("구매일",   pick(d, "date", "purchaseDate", "구매일"));
-    push("구매처",   pick(d, "place", "store", "구매처"));
-    push("구매 금액", pick(d, "price", "amount", "구매금액"));
+    push("구매일",   pick(d, "purchase_date", "date", "purchaseDate", "구매일"));
+    push("상호명",   pick(d, "store_name", "place", "store", "구매처"));
+    const amount = pick(d, "total_price", "price", "amount", "구매금액");
+    if (amount) push("결제금액", /원$/.test(amount) ? amount : `${amount}원`);
     push("상품명",   pick(d, "name", "product", "productName", "상품명"));
   } else if (kind === "manual") {
     push("사용법", pick(d, "usage", "사용법", "사용방법"));
@@ -121,9 +122,12 @@ function QuickPage() {
     }
 
     const summary = pick(data, "summary", "요약");
-    const k = detectKind(data);
+    const hasReceipt =
+      pick(data, "purchase_date") || pick(data, "store_name") || pick(data, "total_price");
+    const k: DocKind = hasReceipt ? "receipt" : detectKind(data);
     const lines = summary ? [summary] : summarize(k, data);
-    const name = pick(data, "name", "product", "productName", "상품명") || "내 새 친구";
+    const name =
+      pick(data, "name", "product", "productName", "상품명", "store_name") || "내 새 친구";
     const brand = pick(data, "brand", "브랜드");
 
     const saved = await addItem({
@@ -132,9 +136,9 @@ function QuickPage() {
       name,
       brand,
       photo,
-      purchaseDate:  pick(data, "date", "purchaseDate", "구매일") || undefined,
-      purchasePlace: pick(data, "place", "store", "구매처") || undefined,
-      price:         pick(data, "price", "amount", "구매금액") || undefined,
+      purchaseDate:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || undefined,
+      purchasePlace: pick(data, "store_name", "place", "store", "구매처") || undefined,
+      price:         pick(data, "total_price", "price", "amount", "구매금액") || undefined,
       warrantyUntil: pick(data, "end", "endDate", "warrantyUntil", "보증종료일") || undefined,
       usage:         pick(data, "usage", "사용법", "사용방법") || undefined,
       cautions:      pick(data, "cautions", "warning", "주의사항") || undefined,
