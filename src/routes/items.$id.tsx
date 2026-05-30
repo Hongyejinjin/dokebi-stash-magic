@@ -2,13 +2,25 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
-import { FEATURES, getItem, removeItem, useItemImages, type DocKind, type Item } from "@/lib/items-store";
+import {
+  FEATURES,
+  getItem,
+  removeItem,
+  useItemImages,
+  type DocKind,
+  type Item,
+} from "@/lib/items-store";
 import { pickPrimaryContent } from "@/lib/analysis-render";
 
 function makeUtcDate(year: number, month: number, day: number): Date | null {
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return null;
   return date;
 }
 
@@ -57,10 +69,28 @@ function normalizeFieldKey(key: string): string {
 
 function isPurchaseDateKey(key: string): boolean {
   const normalized = normalizeFieldKey(key);
-  return [
-    "purchasedate", "purchaseday", "purchasedat", "orderdate", "paymentdate", "transactiondate", "receiptdate",
-    "구매일", "구매날짜", "구입일", "구입날짜", "결제일", "결제날짜", "거래일", "거래일시", "매입일", "매입날짜",
-  ].includes(normalized) || (normalized.includes("purchase") && normalized.includes("date"));
+  return (
+    [
+      "purchasedate",
+      "purchaseday",
+      "purchasedat",
+      "orderdate",
+      "paymentdate",
+      "transactiondate",
+      "receiptdate",
+      "구매일",
+      "구매날짜",
+      "구입일",
+      "구입날짜",
+      "결제일",
+      "결제날짜",
+      "거래일",
+      "거래일시",
+      "매입일",
+      "매입날짜",
+    ].includes(normalized) ||
+    (normalized.includes("purchase") && normalized.includes("date"))
+  );
 }
 
 function isGenericDateKey(key: string): boolean {
@@ -74,7 +104,8 @@ function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | und
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
       const keyMatches = isPurchaseDateKey(key) || (allowGenericDate && isGenericDateKey(key));
       if (keyMatches) {
-        const direct = typeof entry === "string" || typeof entry === "number" ? String(entry) : undefined;
+        const direct =
+          typeof entry === "string" || typeof entry === "number" ? String(entry) : undefined;
         if (direct && parsePurchaseDate(direct)) return direct;
       }
       const textDate = pickDateFromText(entry, allowGenericDate && typeof entry === "string");
@@ -94,10 +125,15 @@ function resolvePurchaseDate(item: Item): string | undefined {
   const analysisDate = findPurchaseDateInAnalysis(item.analysis, item.docKind);
   if (analysisDate) return analysisDate;
   if (item.analysis) {
-    const primaryDate = pickDateFromText(pickPrimaryContent(item.analysis).value, item.docKind === "receipt");
+    const primaryDate = pickDateFromText(
+      pickPrimaryContent(item.analysis).value,
+      item.docKind === "receipt",
+    );
     if (primaryDate) return primaryDate;
   }
-  return pickDateFromText(item.speech) || pickDateFromText(item.summary) || pickDateFromText(item.usage);
+  return (
+    pickDateFromText(item.speech) || pickDateFromText(item.summary) || pickDateFromText(item.usage)
+  );
 }
 
 export const Route = createFileRoute("/items/$id")({
@@ -109,7 +145,9 @@ function ItemDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState<Item | undefined>();
-  useEffect(() => { setItem(getItem(id)); }, [id]);
+  useEffect(() => {
+    setItem(getItem(id));
+  }, [id]);
   const { photo, characterUrl } = useItemImages(item?.id);
 
   if (!item) {
@@ -119,7 +157,12 @@ function ItemDetail() {
         <main className="mx-auto max-w-2xl px-4 py-20 text-center">
           <Dokkaebi size={120} />
           <p className="mt-4 text-muted-foreground">앗! 도깨비가 이 물건을 찾지 못했어요.</p>
-          <Link to="/my" className="mt-4 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">보관함으로</Link>
+          <Link
+            to="/my"
+            className="mt-4 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            보관함으로
+          </Link>
         </main>
       </div>
     );
@@ -150,7 +193,9 @@ function ItemDetail() {
             {characterUrl || photo ? (
               <img src={characterUrl || photo} alt={item.name} className="size-full object-cover" />
             ) : (
-              <div className="flex size-full items-center justify-center"><Dokkaebi size={140} /></div>
+              <div className="flex size-full items-center justify-center">
+                <Dokkaebi size={140} />
+              </div>
             )}
           </div>
           <div className="p-5">
@@ -158,7 +203,11 @@ function ItemDetail() {
               {FEATURES[item.feature].emoji} {FEATURES[item.feature].label}
             </div>
             <h1 className="mt-1 text-2xl font-bold">{item.name}</h1>
-            {item.brand && <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>}
+            {item.brand && (
+              <p className="text-sm text-muted-foreground">
+                {item.brand} {item.model}
+              </p>
+            )}
           </div>
         </div>
 
@@ -178,9 +227,7 @@ function ItemDetail() {
 
         <div className="relative mt-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
           <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
-          <p className="text-sm font-medium text-foreground/90">
-            {daysSinceText(purchaseDate)}
-          </p>
+          <p className="text-sm font-medium text-foreground/90">{daysSinceText(purchaseDate)}</p>
         </div>
 
         <Section title="도깨비 메시지">
@@ -192,7 +239,10 @@ function ItemDetail() {
         </Section>
 
         <button
-          onClick={async () => { await removeItem(item.id); navigate({ to: "/my" }); }}
+          onClick={async () => {
+            await removeItem(item.id);
+            navigate({ to: "/my" });
+          }}
           className="mt-6 w-full rounded-full border border-destructive/40 bg-card py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
         >
           삭제하기
