@@ -180,7 +180,6 @@ function QuickPage() {
     setItem(saved);
     setKind(k);
     setBullets(lines);
-    setItemProfile(data);
     setStep(2);
 
     // Reuse analyze response for character image if present; no extra call.
@@ -284,11 +283,6 @@ function QuickPage() {
               </ul>
             </div>
 
-            {itemProfile && (
-              <div className="mx-auto mt-4 max-w-sm">
-                <AnalysisView data={itemProfile} />
-              </div>
-            )}
 
             <div className="mt-6 flex justify-center gap-2">
               <button
