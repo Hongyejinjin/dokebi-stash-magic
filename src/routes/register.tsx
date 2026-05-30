@@ -319,6 +319,25 @@ function collectExtras(data: Record<string, unknown>): { label: string; value: s
   return out;
 }
 
+// Extract a purchase date string (YYYY-MM-DD / 2024년 5월 20일 / 20240520 / DD.MM.YYYY)
+// from arbitrary text (summary, raw analysis stringified, etc.) so item.purchaseDate
+// is never blindly defaulted to today when n8n only returns it inside the summary.
+const DATE_RE = /(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일?|\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{1,2}|\b\d{8}\b|\b\d{1,2}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{2,4}\b)/;
+const LABELED_DATE_RE = /(?:구매\s*(?:날짜|일)|구입\s*(?:날짜|일)|결제\s*(?:날짜|일)|거래\s*(?:날짜|일시)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date|date)\s*[:：\-–—]?\s*(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일?|\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{1,2}|\b\d{8}\b|\b\d{1,2}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{2,4}\b)/i;
+
+function extractPurchaseDate(...sources: unknown[]): string | undefined {
+  for (const src of sources) {
+    if (!src) continue;
+    const text = typeof src === "string" ? src : (() => { try { return JSON.stringify(src); } catch { return ""; } })();
+    if (!text) continue;
+    const labeled = text.match(LABELED_DATE_RE)?.[1];
+    if (labeled) return labeled.trim();
+    const any = text.match(DATE_RE)?.[1];
+    if (any) return any.trim();
+  }
+  return undefined;
+}
+
 function ProofFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
@@ -332,13 +351,19 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
     setStep(1);
     try {
       const data = await postImage(API.proof, photoFile);
+      const structuredDate = pick(data, "purchase_date", "date", "purchaseDate", "구매일");
+      const summaryText = pick(data, "summary", "요약");
+      const resolvedDate =
+        structuredDate ||
+        extractPurchaseDate(summaryText, data) ||
+        new Date().toISOString().slice(0, 10);
       setResult({
         place: pick(data, "store_name", "place", "store", "purchasePlace", "구매처"),
-        date:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
+        date:  resolvedDate,
         price: pick(data, "total_price", "price", "amount", "구매금액"),
         name:  pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") || "내 새 물건",
         brand: pick(data, "brand", "브랜드"),
-        summary: pick(data, "summary", "요약"),
+        summary: summaryText,
         extras: collectExtras(data),
         raw: data,
       });
