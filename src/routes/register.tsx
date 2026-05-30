@@ -502,26 +502,32 @@ type WarrantyResult = { name: string; brand: string; period: string; start: stri
 function WarrantyFlow() {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<WarrantyResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [itemId, setItemId] = useState<string>("");
 
   const next = async () => {
-    if (!photo) { setTried(true); return; }
+    if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
-    const data = await callApi(API.warranty, { type: "warranty", photo });
-    const start = pick(data, "start", "startDate", "보증시작일") || new Date().toISOString().slice(0, 10);
-    const end   = pick(data, "end", "endDate", "warrantyUntil", "보증종료일") ||
-                  new Date(Date.now() + 365 * 86400_000).toISOString().slice(0, 10);
-    setResult({
-      name:   pick(data, "name", "product", "productName", "제품명") || "내 새 물건",
-      brand:  pick(data, "brand", "브랜드"),
-      period: pick(data, "period", "보증기간") || "1년",
-      start,
-      end,
-    });
-    setStep(2);
+    try {
+      const data = await postImage(API.warranty, photoFile);
+      const start = pick(data, "warranty_start", "start", "startDate", "보증시작일") || new Date().toISOString().slice(0, 10);
+      const end   = pick(data, "warranty_end", "end", "endDate", "warrantyUntil", "보증종료일") ||
+                    new Date(Date.now() + 365 * 86400_000).toISOString().slice(0, 10);
+      setResult({
+        name:   pick(data, "product_name", "name", "product", "productName", "제품명") || "내 새 물건",
+        brand:  pick(data, "brand", "브랜드"),
+        period: pick(data, "warranty_period", "period", "보증기간") || "1년",
+        start,
+        end,
+      });
+      setStep(2);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요");
+      setStep(0);
+    }
   };
 
   const confirm = () => {
@@ -546,7 +552,7 @@ function WarrantyFlow() {
           <p className="mt-1 text-sm text-muted-foreground">보증서를 사진으로 찍어 올려주세요.</p>
           <UploadBox
             photo={photo}
-            onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
+            onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }}
             label="탭하여 보증서 추가"
             hint="PNG · JPG · PDF"
             icon="📜"
