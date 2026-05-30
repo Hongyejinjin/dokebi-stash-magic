@@ -49,7 +49,7 @@ function parsePurchaseDate(input: unknown): Date | null {
 
 const DATE_VALUE_PATTERN = String.raw`\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일?|\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{1,2}|\b\d{8}\b|\b\d{1,2}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{2,4}\b`;
 const PURCHASE_DATE_LABEL_PATTERN = new RegExp(
-  String.raw`(?:구매\s*(?:날짜|일)|구입\s*(?:날짜|일)|결제\s*(?:날짜|일)|거래\s*(?:날짜|일시)|매입\s*(?:날짜|일)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
+  String.raw`(?:구매\s*(?:날짜|일)|구입\s*(?:날짜|일)|수매\s*(?:날짜|일)|결제\s*(?:날짜|일)|거래\s*(?:날짜|일시)|매입\s*(?:날짜|일)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
   "i",
 );
 const ANY_DATE_PATTERN = new RegExp(`(${DATE_VALUE_PATTERN})`, "i");
@@ -82,6 +82,8 @@ function isPurchaseDateKey(key: string): boolean {
       "구매날짜",
       "구입일",
       "구입날짜",
+      "수매일",
+      "수매날짜",
       "결제일",
       "결제날짜",
       "거래일",
@@ -95,6 +97,17 @@ function isPurchaseDateKey(key: string): boolean {
 
 function isGenericDateKey(key: string): boolean {
   return ["date", "day", "일자", "날짜"].includes(normalizeFieldKey(key));
+}
+
+function hasReceiptSignal(item: Item): boolean {
+  const hay = JSON.stringify({
+    docKind: item.docKind,
+    name: item.name,
+    speech: item.speech,
+    summary: item.summary,
+    analysis: item.analysis,
+  }).toLowerCase();
+  return /receipt|영수증|구매|구입|수매|결제|거래|store_name|total_price|purchase_date/.test(hay);
 }
 
 function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | undefined {
@@ -122,12 +135,13 @@ function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | und
 
 function resolvePurchaseDate(item: Item): string | undefined {
   if (item.purchaseDate && parsePurchaseDate(item.purchaseDate)) return item.purchaseDate;
-  const analysisDate = findPurchaseDateInAnalysis(item.analysis, item.docKind);
+  const inferredKind = item.docKind === "receipt" || hasReceiptSignal(item) ? "receipt" : item.docKind;
+  const analysisDate = findPurchaseDateInAnalysis(item.analysis, inferredKind);
   if (analysisDate) return analysisDate;
   if (item.analysis) {
     const primaryDate = pickDateFromText(
       pickPrimaryContent(item.analysis).value,
-      item.docKind === "receipt",
+      inferredKind === "receipt",
     );
     if (primaryDate) return primaryDate;
   }
