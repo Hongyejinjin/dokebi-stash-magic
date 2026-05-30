@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, FEATURES, type FeatureKey } from "@/lib/items-store";
 
 const searchSchema = z.object({
-  feature: z.enum(["auto", "proof", "manual", "warranty", "lost"]).optional(),
+  feature: z.enum(["auto", "proof", "manual", "warranty"]).optional(),
 });
 
 export const Route = createFileRoute("/register")({
@@ -46,8 +46,8 @@ function RegisterPage() {
               <div className="text-3xl">🪄</div>
             </div>
           </Link>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {(["proof","manual","warranty","lost"] as FeatureKey[]).map((k) => (
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(["proof","manual","warranty"] as FeatureKey[]).map((k) => (
               <button
                 key={k}
                 onClick={() => setFeature(k)}
@@ -66,10 +66,9 @@ function RegisterPage() {
 
   return (
     <Shell>
-      {feature === "proof" && <ProofFlow />}
-      {feature === "manual" && <ManualFlow />}
-      {feature === "warranty" && <WarrantyFlow />}
-      {feature === "lost" && <LostFlow />}
+      {feature === "proof" && <ProofFlow onBack={() => setFeature(null)} />}
+      {feature === "manual" && <ManualFlow onBack={() => setFeature(null)} />}
+      {feature === "warranty" && <WarrantyFlow onBack={() => setFeature(null)} />}
     </Shell>
   );
 }
@@ -214,6 +213,17 @@ function PrimaryButton({ onClick, disabled, children }: { onClick: () => void; d
   );
 }
 
+function BackButton({ onClick, label = "이전 단계" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary"
+    >
+      ← {label}
+    </button>
+  );
+}
+
 function LoadingScene({ message, swinging }: { message: string; swinging?: boolean }) {
   return (
     <section className="mt-16 flex flex-col items-center text-center">
@@ -266,7 +276,7 @@ function ResultRow({ label, value }: { label: string; value?: string }) {
 
 type ProofResult = { place: string; date: string; price: string; name: string; brand: string };
 
-function ProofFlow() {
+function ProofFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -311,6 +321,7 @@ function ProofFlow() {
       <Stepper steps={["증빙 등록", "분석", "정리", "완료"]} current={step} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">증빙 서류를 등록해주세요!</h1>
           <p className="mt-1 text-sm text-muted-foreground">영수증, 구매 내역서 등 어떤 증빙이든 좋아요.</p>
           <UploadBox
@@ -327,6 +338,7 @@ function ProofFlow() {
       {step === 1 && <LoadingScene message="도깨비가 증빙 서류를 분석하고 있어요!" />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">정리된 증빙 정보예요</h1>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
             <ResultRow label="상품명" value={result.name} />
@@ -347,7 +359,7 @@ function ProofFlow() {
 
 type ManualResult = { name: string; brand: string; summary: string; usage: string; cautions: string; care: string };
 
-function ManualFlow() {
+function ManualFlow({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<null | "image" | "qr">(null);
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
@@ -362,6 +374,7 @@ function ManualFlow() {
       <>
         <Stepper steps={["방식 선택", "등록", "분석", "완료"]} current={0} />
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">사용서를 등록하거나 QR코드를 인식해주세요!</h1>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <button onClick={() => setMode("image")} className="rounded-3xl border border-border bg-card p-6 text-left shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
@@ -434,7 +447,7 @@ function ManualFlow() {
       <Stepper steps={["방식 선택", "등록", "분석", "완료"]} current={step + 1 > 3 ? 3 : step + 1} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
-          <button onClick={() => setMode(null)} className="text-xs text-muted-foreground hover:underline">← 방식 다시 선택</button>
+          <BackButton onClick={() => setMode(null)} label="방식 다시 선택" />
           <h1 className="mt-2 text-2xl font-bold">
             {mode === "image" ? "사용서 이미지를 등록해주세요" : "QR 코드를 등록해주세요"}
           </h1>
@@ -471,6 +484,7 @@ function ManualFlow() {
       {step === 1 && <LoadingScene message="이미지를 분석 중입니다..." swinging />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">사용법 정리 결과</h1>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
             <ResultRow label="제품명" value={result.name} />
@@ -501,7 +515,7 @@ function ManualFlow() {
 
 type WarrantyResult = { name: string; brand: string; period: string; start: string; end: string };
 
-function WarrantyFlow() {
+function WarrantyFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -550,6 +564,7 @@ function WarrantyFlow() {
       <Stepper steps={["보증서 등록", "분석", "확인 / 수정", "완료"]} current={step} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">보증서를 등록해주세요!</h1>
           <p className="mt-1 text-sm text-muted-foreground">보증서를 사진으로 찍어 올려주세요.</p>
           <UploadBox
@@ -566,6 +581,7 @@ function WarrantyFlow() {
       {step === 1 && <LoadingScene message="도깨비가 보증 정보를 추출하고 있어요!" />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">보증 정보를 확인해주세요</h1>
           <p className="mt-1 text-sm text-muted-foreground">필요한 부분은 수정할 수 있어요.</p>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
@@ -622,62 +638,3 @@ function EditField({ label, value, onChange, type = "text" }: { label: string; v
   );
 }
 
-/* ----------------------------- 4. LOST ----------------------------- */
-
-function LostFlow() {
-  const [step, setStep] = useState<0 | 1 | 2>(0);
-  const [photo, setPhoto] = useState<string>();
-  const [tried, setTried] = useState(false);
-  const [name, setName] = useState("");
-  const [place, setPlace] = useState("");
-  const [itemId, setItemId] = useState<string>("");
-
-  const next = () => {
-    if (!photo) { setTried(true); return; }
-    setStep(1);
-  };
-
-  const finish = async () => {
-    const item = await addItem({
-      feature: "lost",
-      photo,
-      name: name || "소중한 물건",
-      purchasePlace: place,
-      cautions: place ? `마지막 위치: ${place}` : undefined,
-    });
-    setItemId(item.id);
-    setStep(2);
-  };
-
-  return (
-    <>
-      <Stepper steps={["사진 등록", "정보 입력", "완료"]} current={step} />
-      {step === 0 && (
-        <section className="mt-6 animate-float-up">
-          <h1 className="text-2xl font-bold">잃어버리면 안 되는 물건을 등록해주세요!</h1>
-          <UploadBox
-            photo={photo}
-            onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
-            label="탭하여 사진 추가"
-            hint="물건을 알아볼 수 있는 사진"
-            icon="🪄"
-            accept="image/*"
-          />
-          <GateMessage show={tried && !photo} />
-          <PrimaryButton onClick={next}>다음 단계로</PrimaryButton>
-        </section>
-      )}
-      {step === 1 && (
-        <section className="mt-6 animate-float-up">
-          <h1 className="text-2xl font-bold">물건을 기록해두세요</h1>
-          <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
-            <EditField label="물건 이름" value={name}  onChange={setName} />
-            <EditField label="마지막 위치 / 보관 장소" value={place} onChange={setPlace} />
-          </div>
-          <PrimaryButton onClick={finish}>도깨비에게 맡기기</PrimaryButton>
-        </section>
-      )}
-      {step === 2 && <DoneScene message="도깨비가 잘 지켜볼게요! 👺" itemId={itemId} />}
-    </>
-  );
-}
