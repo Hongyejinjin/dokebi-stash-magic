@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, FEATURES, type FeatureKey } from "@/lib/items-store";
 
 const searchSchema = z.object({
-  feature: z.enum(["auto", "proof", "manual", "warranty", "lost"]).optional(),
+  feature: z.enum(["auto", "proof", "manual", "warranty"]).optional(),
 });
 
 export const Route = createFileRoute("/register")({
@@ -46,8 +46,8 @@ function RegisterPage() {
               <div className="text-3xl">🪄</div>
             </div>
           </Link>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {(["proof","manual","warranty","lost"] as FeatureKey[]).map((k) => (
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(["proof","manual","warranty"] as FeatureKey[]).map((k) => (
               <button
                 key={k}
                 onClick={() => setFeature(k)}
@@ -66,10 +66,9 @@ function RegisterPage() {
 
   return (
     <Shell>
-      {feature === "proof" && <ProofFlow />}
-      {feature === "manual" && <ManualFlow />}
-      {feature === "warranty" && <WarrantyFlow />}
-      {feature === "lost" && <LostFlow />}
+      {feature === "proof" && <ProofFlow onBack={() => setFeature(null)} />}
+      {feature === "manual" && <ManualFlow onBack={() => setFeature(null)} />}
+      {feature === "warranty" && <WarrantyFlow onBack={() => setFeature(null)} />}
     </Shell>
   );
 }
