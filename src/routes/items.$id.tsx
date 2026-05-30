@@ -194,9 +194,30 @@ function ItemDetail() {
     return `함께한 지 D+${days}일째!`;
   }
 
-  const daysLeft = item.warrantyUntil
-    ? Math.ceil((new Date(item.warrantyUntil).getTime() - Date.now()) / 86400_000)
+  const warrantyEnd = parsePurchaseDate(item.warrantyUntil);
+  const todayUtc = (() => {
+    const n = new Date();
+    return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+  })();
+  const daysLeft = warrantyEnd
+    ? Math.round((warrantyEnd.getTime() - todayUtc) / 86_400_000)
     : null;
+  const ddayLabel =
+    daysLeft === null
+      ? null
+      : daysLeft > 0
+        ? `D-${daysLeft}`
+        : daysLeft === 0
+          ? "D-DAY"
+          : `D+${Math.abs(daysLeft)}`;
+  const ddayTone =
+    daysLeft === null
+      ? ""
+      : daysLeft < 0
+        ? "bg-destructive text-destructive-foreground"
+        : daysLeft <= 30
+          ? "bg-amber-500 text-white"
+          : "bg-primary text-primary-foreground";
   const purchaseDate = resolvePurchaseDate(item);
 
   return (
@@ -204,12 +225,18 @@ function ItemDetail() {
       <SiteHeader />
       <main className="mx-auto max-w-2xl px-4 pb-20">
         <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-          <div className="aspect-[4/3] bg-mint/40">
+          <div className="relative aspect-[4/3] bg-mint/40">
             {characterUrl || photo ? (
               <img src={characterUrl || photo} alt={item.name} className="size-full object-cover" />
             ) : (
               <div className="flex size-full items-center justify-center">
                 <Dokkaebi size={140} />
+              </div>
+            )}
+            {ddayLabel && (
+              <div className={`absolute left-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold shadow-soft ${ddayTone}`}>
+                <span>⏰</span>
+                <span>보증 {ddayLabel}</span>
               </div>
             )}
           </div>
@@ -225,20 +252,6 @@ function ItemDetail() {
             )}
           </div>
         </div>
-
-        {daysLeft !== null && (
-          <div className="mt-4 rounded-3xl bg-gradient-hero p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl">⏰</div>
-              <div>
-                <div className="text-xs font-semibold text-muted-foreground">보증 만료까지</div>
-                <div className="text-lg font-bold text-foreground">
-                  {daysLeft > 0 ? `D-${daysLeft}` : "보증 만료됨"}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="relative mt-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
           <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
