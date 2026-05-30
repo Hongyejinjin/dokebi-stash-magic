@@ -211,13 +211,48 @@ function resolveWarrantyEnd(item: Item): string | undefined {
   if (item.warrantyUntil && parsePurchaseDate(item.warrantyUntil)) return item.warrantyUntil;
   const analysisDate = findWarrantyEndInAnalysis(item.analysis);
   if (analysisDate) return analysisDate;
-  return (
+  const labeled =
     pickWarrantyDateFromText(item.speech) ||
     pickWarrantyDateFromText(item.summary) ||
     pickWarrantyDateFromText(item.usage) ||
     pickWarrantyDateFromText(item.asInfo) ||
-    (item.analysis ? pickWarrantyDateFromText(pickPrimaryContent(item.analysis).value) : undefined)
-  );
+    (item.analysis ? pickWarrantyDateFromText(pickPrimaryContent(item.analysis).value) : undefined);
+  if (labeled) return labeled;
+
+  // Compute from purchase date + warranty period text (e.g. "3년", "3 years", "36개월").
+  const purchase = parsePurchaseDate(resolvePurchaseDate(item));
+  const period = findWarrantyPeriod(item);
+  if (purchase && period) {
+    const end = new Date(purchase);
+    if (period.unit === "year") end.setUTCFullYear(end.getUTCFullYear() + period.value);
+    else end.setUTCMonth(end.getUTCMonth() + period.value);
+    return end.toISOString().slice(0, 10);
+  }
+
+  // Brute force: scan stringified analysis for any future date.
+  if (item.analysis) {
+    const hay = JSON.stringify(item.analysis);
+    const today = Date.now();
+    const matches = [...hay.matchAll(new RegExp(DATE_VALUE_PATTERN, "g"))];
+    const future = matches
+      .map((m) => parsePurchaseDate(m[0]))
+      .filter((d): d is Date => !!d && d.getTime() > today)
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (future[0]) return future[0].toISOString().slice(0, 10);
+  }
+  return undefined;
+}
+
+function findWarrantyPeriod(item: Item): { value: number; unit: "year" | "month" } | undefined {
+  const fields = [item.asInfo, item.speech, item.summary, item.usage];
+  if (item.analysis) fields.push(JSON.stringify(item.analysis));
+  const text = fields.filter(Boolean).join(" ");
+  if (!text) return undefined;
+  const yr = text.match(/(\d+)\s*(?:년|years?|yrs?)\b/i);
+  if (yr) return { value: +yr[1], unit: "year" };
+  const mo = text.match(/(\d+)\s*(?:개월|months?|mos?)\b/i);
+  if (mo) return { value: +mo[1], unit: "month" };
+  return undefined;
 }
 
 export const Route = createFileRoute("/items/$id")({
