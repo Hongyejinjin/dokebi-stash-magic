@@ -269,22 +269,28 @@ type ProofResult = { place: string; date: string; price: string; name: string; b
 function ProofFlow() {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [itemId, setItemId] = useState<string>("");
 
   const next = async () => {
-    if (!photo) { setTried(true); return; }
+    if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
-    const data = await callApi(API.proof, { type: "proof", photo });
-    setResult({
-      place: pick(data, "place", "store", "purchasePlace", "구매처"),
-      date:  pick(data, "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
-      price: pick(data, "price", "amount", "구매금액"),
-      name:  pick(data, "name", "product", "productName", "상품명") || "내 새 물건",
-      brand: pick(data, "brand", "브랜드"),
-    });
-    setStep(2);
+    try {
+      const data = await postImage(API.proof, photoFile);
+      setResult({
+        place: pick(data, "store_name", "place", "store", "purchasePlace", "구매처"),
+        date:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
+        price: pick(data, "total_price", "price", "amount", "구매금액"),
+        name:  pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") || "내 새 물건",
+        brand: pick(data, "brand", "브랜드"),
+      });
+      setStep(2);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요");
+      setStep(0);
+    }
   };
 
   const finish = () => {
@@ -309,7 +315,7 @@ function ProofFlow() {
           <p className="mt-1 text-sm text-muted-foreground">영수증, 구매 내역서 등 어떤 증빙이든 좋아요.</p>
           <UploadBox
             photo={photo}
-            onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
+            onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }}
             label="탭하여 증빙 추가"
             hint="PNG · JPG · PDF"
             icon="🧾"
