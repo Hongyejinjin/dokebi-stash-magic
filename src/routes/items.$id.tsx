@@ -135,7 +135,8 @@ function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | und
 
 function resolvePurchaseDate(item: Item): string | undefined {
   if (item.purchaseDate && parsePurchaseDate(item.purchaseDate)) return item.purchaseDate;
-  const inferredKind = item.docKind === "receipt" || hasReceiptSignal(item) ? "receipt" : item.docKind;
+  const inferredKind =
+    item.docKind === "receipt" || hasReceiptSignal(item) ? "receipt" : item.docKind;
   const analysisDate = findPurchaseDateInAnalysis(item.analysis, inferredKind);
   if (analysisDate) return analysisDate;
   if (item.analysis) {
