@@ -1,12 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
-import { addItem, FEATURES, type FeatureKey, updateItem } from "@/lib/items-store";
+import { addItem, FEATURES, type FeatureKey } from "@/lib/items-store";
 
 const searchSchema = z.object({
-  feature: z.enum(["proof", "manual", "warranty", "lost"]).optional(),
+  feature: z.enum(["auto", "proof", "manual", "warranty", "lost"]).optional(),
 });
 
 export const Route = createFileRoute("/register")({
@@ -32,8 +32,21 @@ function RegisterPage() {
         <section className="mt-6 animate-float-up">
           <h1 className="text-2xl font-bold">어떤 관리가 필요한가요?</h1>
           <p className="mt-1 text-sm text-muted-foreground">하나를 골라야 도깨비가 알맞게 정리해드려요.</p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {(Object.keys(FEATURES) as FeatureKey[]).map((k) => (
+          <Link
+            to="/quick"
+            className="mt-5 block rounded-3xl border border-primary/40 bg-gradient-hero p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-glow"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-primary">✨ NEW</div>
+                <div className="mt-1 text-lg font-bold">통합 등록 (AI 자동 인식)</div>
+                <div className="mt-1 text-xs text-muted-foreground">사진 한 장이면 도깨비가 알아서 분류해요</div>
+              </div>
+              <div className="text-3xl">🪄</div>
+            </div>
+          </Link>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {(["proof","manual","warranty","lost"] as FeatureKey[]).map((k) => (
               <button
                 key={k}
                 onClick={() => setFeature(k)}
