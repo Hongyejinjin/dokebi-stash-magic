@@ -30,6 +30,7 @@ export type Item = {
   asInfo?: string;
   usage?: string;
   cautions?: string;
+  summary?: string;
   careCycle?: string;
   repairs?: RepairLog[];
   speech?: string;

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
@@ -21,20 +22,19 @@ function readFile(file: File): Promise<string> {
   });
 }
 
-async function callApi(url: string, payload: unknown): Promise<Record<string, unknown>> {
+async function postImage(url: string, file: File): Promise<Record<string, unknown>> {
+  const fd = new FormData();
+  fd.append("image", file);
+  const res = await fetch(url, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+  const text = await res.text();
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const text = await res.text();
-    try {
-      const j = JSON.parse(text);
-      if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
-      return j as Record<string, unknown>;
-    } catch { return { raw: text }; }
-  } catch { return {}; }
+    const j = JSON.parse(text);
+    if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
+    return j as Record<string, unknown>;
+  } catch {
+    return { summary: text };
+  }
 }
 
 function pick(obj: Record<string, unknown>, ...keys: string[]): string {
@@ -95,6 +95,7 @@ function QuickPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [tried, setTried] = useState(false);
   const [item, setItem] = useState<Item | null>(null);
   const [kind, setKind] = useState<DocKind>("item");
@@ -103,16 +104,25 @@ function QuickPage() {
   const [characterReady, setCharacterReady] = useState(false);
 
   async function start() {
-    if (!photo) { setTried(true); return; }
+    if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
 
-    // Kick off both calls in parallel.
-    const analyzeP = callApi(API_ANALYZE, { type: "auto", photo });
-    const characterP = callApi(API_CHARACTER, { photo });
+    // Kick off both calls in parallel using FormData.
+    const analyzeP = postImage(API_ANALYZE, photoFile);
+    const characterP = postImage(API_CHARACTER, photoFile).catch(() => ({} as Record<string, unknown>));
 
-    const data = await analyzeP;
+    let data: Record<string, unknown>;
+    try {
+      data = await analyzeP;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "이미지 분석에 실패했어요");
+      setStep(0);
+      return;
+    }
+
+    const summary = pick(data, "summary", "요약");
     const k = detectKind(data);
-    const lines = summarize(k, data);
+    const lines = summary ? [summary] : summarize(k, data);
     const name = pick(data, "name", "product", "productName", "상품명") || "내 새 친구";
     const brand = pick(data, "brand", "브랜드");
 
@@ -128,6 +138,7 @@ function QuickPage() {
       warrantyUntil: pick(data, "end", "endDate", "warrantyUntil", "보증종료일") || undefined,
       usage:         pick(data, "usage", "사용법", "사용방법") || undefined,
       cautions:      pick(data, "cautions", "warning", "주의사항") || undefined,
+      summary:       summary || undefined,
       careCycle:     pick(data, "care", "maintenance", "관리방법") || undefined,
       speech: lines.join(" · "),
     });
@@ -160,7 +171,7 @@ function QuickPage() {
             <label className="mt-5 block cursor-pointer rounded-3xl border-2 border-dashed border-border bg-mint/30 p-10 text-center transition hover:bg-mint/50">
               <input type="file" accept="image/*,.pdf" className="hidden" onChange={async (e) => {
                 const f = e.target.files?.[0];
-                if (f) { setPhoto(await readFile(f)); setTried(false); }
+                if (f) { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }
               }} />
               {photo ? (
                 <img src={photo} alt="업로드" className="mx-auto max-h-56 rounded-2xl object-contain" />
@@ -190,7 +201,7 @@ function QuickPage() {
         {step === 1 && (
           <section className="mt-16 flex flex-col items-center text-center">
             <Dokkaebi size={160} swinging />
-            <p className="mt-6 text-base font-semibold text-foreground">도깨비가 사진을 살펴보고 있어요!</p>
+            <p className="mt-6 text-base font-semibold text-foreground">이미지를 분석 중입니다...</p>
             <div className="mt-4 flex gap-1">
               {[0, 1, 2].map((i) => (
                 <span key={i} className="size-2 animate-sparkle rounded-full bg-primary" style={{ animationDelay: `${i * 0.2}s` }} />
