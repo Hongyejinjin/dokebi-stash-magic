@@ -753,7 +753,7 @@ function SectionCard({ label, body }: { label: string; body: string }) {
   );
 }
 
-const EXCLUDED_LABELS = new Set(["제품명", "구매날짜", "구매 일자", "구매일", "구매금액", "구매 금액", "가격", "금액", "price", "purchase_date", "purchaseDate"]);
+const EXCLUDED_LABELS = new Set(["제품명", "구매날짜", "구매 일자", "구매일", "구매금액", "구매 금액", "가격", "금액", "price", "purchase_date", "purchaseDate", "요약", "summary"]);
 
 function isExcludedLabel(label: string): boolean {
   const normalized = label.trim().toLowerCase().replace(/\s+/g, "");
@@ -763,7 +763,9 @@ function isExcludedLabel(label: string): boolean {
     normalized.includes("구매금액") ||
     normalized.includes("purchaseprice") ||
     normalized.includes("purchaseamount") ||
-    normalized.includes("purchasedate");
+    normalized.includes("purchasedate") ||
+    normalized.includes("요약") ||
+    normalized.includes("summary");
 }
 
 function ManualSections({ result }: { result: ManualResult }) {
