@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { Dokkaebi } from "@/components/Dokkaebi";
+import { Dokkaebi, toneFromKey } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, useItems } from "@/lib/items-store";
 import { ItemThumb } from "@/components/ItemThumb";
@@ -19,6 +19,12 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const items = useItems();
+  const now = Date.now();
+  const warrantyActive = items.filter((it) => {
+    if (!it.warrantyUntil) return false;
+    const t = Date.parse(it.warrantyUntil);
+    return Number.isFinite(t) && t >= now;
+  }).length;
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -50,6 +56,22 @@ function Index() {
               </div>
             </div>
             <Dokkaebi size={170} />
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="mt-6 grid grid-cols-2 gap-3">
+          <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+            <div className="text-xs font-semibold text-muted-foreground">등록된 물건</div>
+            <div className="mt-1 text-3xl font-bold text-foreground">
+              {items.length}<span className="ml-1 text-base font-semibold text-muted-foreground">개</span>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+            <div className="text-xs font-semibold text-muted-foreground">보증 중인 물건</div>
+            <div className="mt-1 text-3xl font-bold text-primary">
+              {warrantyActive}<span className="ml-1 text-base font-semibold text-muted-foreground">개</span>
+            </div>
           </div>
         </section>
 
@@ -91,13 +113,16 @@ function Index() {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {items.slice(0, 6).map((it) => (
-                <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
+                <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
                   <div className="aspect-square overflow-hidden bg-mint/40">
                     <ItemThumb id={it.id} name={it.name} />
                   </div>
                   <div className="p-3">
                     <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>
                     <div className="truncate text-sm font-bold">{it.name}</div>
+                  </div>
+                  <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-sm">
+                    <Dokkaebi size={44} tone={toneFromKey(it.id)} swinging />
                   </div>
                 </Link>
               ))}
