@@ -129,7 +129,7 @@ function QuickPage() {
   const [item, setItem] = useState<Item | null>(null);
   const [kind, setKind] = useState<DocKind>("item");
   const [bullets, setBullets] = useState<string[]>([]);
-  const [itemProfile, setItemProfile] = useState<Record<string, unknown> | null>(null);
+  
   const [characterUrl, setCharacterUrl] = useState<string>();
   const [characterReady, setCharacterReady] = useState(false);
 
