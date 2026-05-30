@@ -80,6 +80,14 @@ function ItemDetail() {
           </div>
         )}
 
+        <div className="relative mt-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
+          <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
+          <div className="text-xs font-semibold text-primary">도깨비 메시지</div>
+          <p className="mt-2 text-sm font-medium text-foreground/90">
+            {daysSinceText(item.purchaseDate)}
+          </p>
+        </div>
+
         <Section title="도깨비 메시지">
           <p className="whitespace-pre-line text-sm text-foreground/80">
             {item.analysis
