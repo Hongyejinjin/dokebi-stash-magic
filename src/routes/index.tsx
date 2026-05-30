@@ -4,6 +4,7 @@ import { Dokkaebi, toneFromKey } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, useItems } from "@/lib/items-store";
 import { ItemThumb } from "@/components/ItemThumb";
+import { hasWarrantyDday } from "@/lib/item-dates";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,12 +20,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const items = useItems();
-  const now = Date.now();
-  const warrantyActive = items.filter((it) => {
-    if (!it.warrantyUntil) return false;
-    const t = Date.parse(it.warrantyUntil);
-    return Number.isFinite(t) && t >= now;
-  }).length;
+  const warrantyActive = items.filter(hasWarrantyDday).length;
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
