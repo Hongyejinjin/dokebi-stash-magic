@@ -32,11 +32,11 @@ function ItemDetail() {
 
   function daysSinceText(purchaseDate?: string) {
     if (!purchaseDate) return "만난 날짜를 아직 몰라요";
-    const purchase = new Date(purchaseDate);
-    const today = new Date();
-    purchase.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((today.getTime() - purchase.getTime()) / 86_400_000);
+    const purchase = parsePurchaseDate(purchaseDate);
+    if (!purchase) return "만난 날짜를 아직 몰라요";
+    const now = new Date();
+    const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.floor((today - purchase.getTime()) / 86_400_000);
     const days = Math.max(1, diffDays);
     return `함께한 지 D+${days}일째!`;
   }
