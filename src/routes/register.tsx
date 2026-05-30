@@ -276,7 +276,7 @@ function ResultRow({ label, value }: { label: string; value?: string }) {
 
 type ProofResult = { place: string; date: string; price: string; name: string; brand: string };
 
-function ProofFlow() {
+function ProofFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -321,6 +321,7 @@ function ProofFlow() {
       <Stepper steps={["증빙 등록", "분석", "정리", "완료"]} current={step} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">증빙 서류를 등록해주세요!</h1>
           <p className="mt-1 text-sm text-muted-foreground">영수증, 구매 내역서 등 어떤 증빙이든 좋아요.</p>
           <UploadBox
@@ -337,6 +338,7 @@ function ProofFlow() {
       {step === 1 && <LoadingScene message="도깨비가 증빙 서류를 분석하고 있어요!" />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">정리된 증빙 정보예요</h1>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
             <ResultRow label="상품명" value={result.name} />
