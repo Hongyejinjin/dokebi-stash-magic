@@ -151,6 +151,75 @@ function resolvePurchaseDate(item: Item): string | undefined {
   );
 }
 
+const WARRANTY_END_LABEL_PATTERN = new RegExp(
+  String.raw`(?:보증\s*(?:종료(?:일)?|만료(?:일)?|끝(?:나는\s*날)?)|warranty\s*(?:end|expiry|expiration|until)|expires?(?:\s*on)?|valid\s*until|until)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
+  "i",
+);
+
+function isWarrantyEndKey(key: string): boolean {
+  const n = normalizeFieldKey(key);
+  return (
+    [
+      "warrantyend",
+      "warrantyenddate",
+      "warrantyuntil",
+      "warrantyexpiry",
+      "warrantyexpiration",
+      "enddate",
+      "expirydate",
+      "expirationdate",
+      "보증종료일",
+      "보증종료",
+      "보증만료일",
+      "보증만료",
+      "보증끝",
+      "만료일",
+      "종료일",
+    ].includes(n) ||
+    (n.includes("warranty") && (n.includes("end") || n.includes("until") || n.includes("expir")))
+  );
+}
+
+function pickWarrantyDateFromText(text: unknown): string | undefined {
+  if (typeof text !== "string" || !text.trim()) return undefined;
+  const m = text.match(WARRANTY_END_LABEL_PATTERN)?.[1];
+  return m && parsePurchaseDate(m) ? m : undefined;
+}
+
+function findWarrantyEndInAnalysis(data: unknown): string | undefined {
+  const walk = (value: unknown): string | undefined => {
+    if (!value || typeof value !== "object") return undefined;
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (isWarrantyEndKey(key)) {
+        const direct =
+          typeof entry === "string" || typeof entry === "number" ? String(entry) : undefined;
+        if (direct && parsePurchaseDate(direct)) return direct;
+      }
+      const textDate = pickWarrantyDateFromText(entry);
+      if (textDate) return textDate;
+      if (entry && typeof entry === "object") {
+        const nested = walk(entry);
+        if (nested) return nested;
+      }
+    }
+    return undefined;
+  };
+  return walk(data);
+}
+
+function resolveWarrantyEnd(item: Item): string | undefined {
+  if (item.warrantyUntil && parsePurchaseDate(item.warrantyUntil)) return item.warrantyUntil;
+  const analysisDate = findWarrantyEndInAnalysis(item.analysis);
+  if (analysisDate) return analysisDate;
+  return (
+    pickWarrantyDateFromText(item.speech) ||
+    pickWarrantyDateFromText(item.summary) ||
+    pickWarrantyDateFromText(item.usage) ||
+    pickWarrantyDateFromText(item.asInfo) ||
+    (item.analysis ? pickWarrantyDateFromText(pickPrimaryContent(item.analysis).value) : undefined)
+  );
+}
+
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
   component: ItemDetail,
@@ -194,7 +263,7 @@ function ItemDetail() {
     return `함께한 지 D+${days}일째!`;
   }
 
-  const warrantyEnd = parsePurchaseDate(item.warrantyUntil);
+  const warrantyEnd = parsePurchaseDate(resolveWarrantyEnd(item));
   const todayUtc = (() => {
     const n = new Date();
     return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
