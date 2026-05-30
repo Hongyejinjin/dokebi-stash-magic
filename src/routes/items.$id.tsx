@@ -37,8 +37,8 @@ function ItemDetail() {
     purchase.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
     const diffDays = Math.floor((today.getTime() - purchase.getTime()) / 86_400_000);
-    const days = Math.max(1, diffDays + 1);
-    return `이 물건이랑 만난 지 벌써 ${days}일째야!`;
+    const days = Math.max(1, diffDays);
+    return `함께한 지 D+${days}일째!`;
   }
 
   const daysLeft = item.warrantyUntil
