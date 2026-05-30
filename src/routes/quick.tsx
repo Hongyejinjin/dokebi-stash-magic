@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
@@ -197,6 +197,7 @@ function QuickPage() {
       <main className="mx-auto max-w-2xl px-4 pb-20">
         {step === 0 && (
           <section className="mt-6 animate-float-up">
+            <Link to="/register" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary">← 기능 선택으로</Link>
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">✨ 통합 등록</span>
             <h1 className="mt-3 text-2xl font-bold">사진 한 장만 올려주세요!</h1>
             <p className="mt-1 text-sm text-muted-foreground">물건이든 영수증·보증서·설명서든 도깨비가 알아서 분류해요.</p>
@@ -244,6 +245,12 @@ function QuickPage() {
 
         {step === 2 && item && (
           <section className="mt-6 animate-float-up">
+            <button
+              onClick={() => { setStep(0); setItem(null); setBullets([]); setCharacterUrl(undefined); setCharacterReady(false); }}
+              className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary"
+            >
+              ← 이전 단계
+            </button>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
                 {KIND_LABEL[kind].emoji} {KIND_LABEL[kind].label} 인식 완료
