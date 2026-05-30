@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, useItems } from "@/lib/items-store";
+import { ItemThumb } from "@/components/ItemThumb";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -92,11 +93,7 @@ function Index() {
               {items.slice(0, 6).map((it) => (
                 <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
                   <div className="aspect-square overflow-hidden bg-mint/40">
-                    {it.characterUrl || it.photo ? (
-                      <img src={it.characterUrl || it.photo} alt={it.name} className="size-full object-cover" />
-                    ) : (
-                      <div className="flex size-full items-center justify-center"><Dokkaebi size={80} /></div>
-                    )}
+                    <ItemThumb id={it.id} name={it.name} />
                   </div>
                   <div className="p-3">
                     <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>

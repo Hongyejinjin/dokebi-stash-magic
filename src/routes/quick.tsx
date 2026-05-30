@@ -1,0 +1,262 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Dokkaebi } from "@/components/Dokkaebi";
+import { SiteHeader } from "@/components/SiteHeader";
+import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
+
+export const Route = createFileRoute("/quick")({
+  head: () => ({ meta: [{ title: "통합 등록 — 물건 도깨비" }] }),
+  component: QuickPage,
+});
+
+const API_ANALYZE = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
+const API_CHARACTER = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackathon1";
+
+function readFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function callApi(url: string, payload: unknown): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    try {
+      const j = JSON.parse(text);
+      if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
+      return j as Record<string, unknown>;
+    } catch { return { raw: text }; }
+  } catch { return {}; }
+}
+
+function pick(obj: Record<string, unknown>, ...keys: string[]): string {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v;
+    if (typeof v === "number") return String(v);
+  }
+  return "";
+}
+
+function detectKind(d: Record<string, unknown>): DocKind {
+  const hay = JSON.stringify(d).toLowerCase();
+  if (/(warranty|보증)/.test(hay)) return "warranty";
+  if (/(repair|수리|교체)/.test(hay)) return "repair";
+  if (/(manual|설명서|사용법|usage|caution)/.test(hay)) return "manual";
+  if (/(receipt|영수증|구매처|price|amount|구매금액)/.test(hay)) return "receipt";
+  return "item";
+}
+
+const KIND_LABEL: Record<DocKind, { label: string; emoji: string }> = {
+  receipt:  { label: "영수증", emoji: "🧾" },
+  manual:   { label: "설명서", emoji: "📖" },
+  warranty: { label: "보증서", emoji: "📜" },
+  repair:   { label: "수리 내역", emoji: "🛠️" },
+  item:     { label: "물건",  emoji: "📦" },
+};
+
+function summarize(kind: DocKind, d: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  const push = (l: string, v: string) => { if (v) out.push(`${l}: ${v}`); };
+  if (kind === "receipt") {
+    push("구매일",   pick(d, "date", "purchaseDate", "구매일"));
+    push("구매처",   pick(d, "place", "store", "구매처"));
+    push("구매 금액", pick(d, "price", "amount", "구매금액"));
+    push("상품명",   pick(d, "name", "product", "productName", "상품명"));
+  } else if (kind === "manual") {
+    push("사용법", pick(d, "usage", "사용법", "사용방법"));
+    push("주의사항", pick(d, "cautions", "warning", "주의사항"));
+    push("관리법", pick(d, "care", "maintenance", "관리방법"));
+  } else if (kind === "warranty") {
+    push("보증 기간",  pick(d, "period", "보증기간"));
+    push("보증 시작일", pick(d, "start", "startDate", "보증시작일"));
+    push("보증 만료일", pick(d, "end", "endDate", "warrantyUntil", "보증종료일"));
+  } else if (kind === "repair") {
+    push("수리 일자", pick(d, "date", "수리일자"));
+    push("수리 내역", pick(d, "note", "detail", "수리내역"));
+    push("교체 부품", pick(d, "parts", "교체부품"));
+  } else {
+    push("이름",   pick(d, "name", "product", "productName"));
+    push("브랜드", pick(d, "brand", "브랜드"));
+  }
+  if (!out.length) out.push("내용을 한 줄로 정리하기 어려웠어요. 상세에서 확인해주세요!");
+  return out;
+}
+
+function QuickPage() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [photo, setPhoto] = useState<string>();
+  const [tried, setTried] = useState(false);
+  const [item, setItem] = useState<Item | null>(null);
+  const [kind, setKind] = useState<DocKind>("item");
+  const [bullets, setBullets] = useState<string[]>([]);
+  const [characterUrl, setCharacterUrl] = useState<string>();
+  const [characterReady, setCharacterReady] = useState(false);
+
+  async function start() {
+    if (!photo) { setTried(true); return; }
+    setStep(1);
+
+    // Kick off both calls in parallel.
+    const analyzeP = callApi(API_ANALYZE, { type: "auto", photo });
+    const characterP = callApi(API_CHARACTER, { photo });
+
+    const data = await analyzeP;
+    const k = detectKind(data);
+    const lines = summarize(k, data);
+    const name = pick(data, "name", "product", "productName", "상품명") || "내 새 친구";
+    const brand = pick(data, "brand", "브랜드");
+
+    const saved = await addItem({
+      feature: "auto",
+      docKind: k,
+      name,
+      brand,
+      photo,
+      purchaseDate:  pick(data, "date", "purchaseDate", "구매일") || undefined,
+      purchasePlace: pick(data, "place", "store", "구매처") || undefined,
+      price:         pick(data, "price", "amount", "구매금액") || undefined,
+      warrantyUntil: pick(data, "end", "endDate", "warrantyUntil", "보증종료일") || undefined,
+      usage:         pick(data, "usage", "사용법", "사용방법") || undefined,
+      cautions:      pick(data, "cautions", "warning", "주의사항") || undefined,
+      careCycle:     pick(data, "care", "maintenance", "관리방법") || undefined,
+      speech: lines.join(" · "),
+    });
+
+    setItem(saved);
+    setKind(k);
+    setBullets(lines);
+    setStep(2);
+
+    // Character can arrive later; reveal when ready.
+    characterP.then(async (cdata) => {
+      const url = pick(cdata, "characterUrl", "url", "image", "character");
+      if (url) {
+        setCharacterUrl(url);
+        await updateItem(saved.id, { characterUrl: url });
+      }
+      setCharacterReady(true);
+    }).catch(() => setCharacterReady(true));
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <main className="mx-auto max-w-2xl px-4 pb-20">
+        {step === 0 && (
+          <section className="mt-6 animate-float-up">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">✨ 통합 등록</span>
+            <h1 className="mt-3 text-2xl font-bold">사진 한 장만 올려주세요!</h1>
+            <p className="mt-1 text-sm text-muted-foreground">물건이든 영수증·보증서·설명서든 도깨비가 알아서 분류해요.</p>
+            <label className="mt-5 block cursor-pointer rounded-3xl border-2 border-dashed border-border bg-mint/30 p-10 text-center transition hover:bg-mint/50">
+              <input type="file" accept="image/*,.pdf" className="hidden" onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (f) { setPhoto(await readFile(f)); setTried(false); }
+              }} />
+              {photo ? (
+                <img src={photo} alt="업로드" className="mx-auto max-h-56 rounded-2xl object-contain" />
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-4xl">📷</div>
+                  <div className="text-sm font-semibold">탭하여 사진 추가</div>
+                  <div className="text-xs text-muted-foreground">PNG · JPG · PDF</div>
+                </div>
+              )}
+            </label>
+            {tried && !photo && (
+              <div className="mt-3 rounded-2xl bg-destructive/10 px-4 py-3 text-center text-sm font-semibold text-destructive">
+                등록되지 않았어요!
+              </div>
+            )}
+            <button
+              onClick={start}
+              disabled={!photo}
+              className="mt-5 w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow-soft transition enabled:hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              도깨비에게 맡기기
+            </button>
+          </section>
+        )}
+
+        {step === 1 && (
+          <section className="mt-16 flex flex-col items-center text-center">
+            <Dokkaebi size={160} swinging />
+            <p className="mt-6 text-base font-semibold text-foreground">도깨비가 사진을 살펴보고 있어요!</p>
+            <div className="mt-4 flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="size-2 animate-sparkle rounded-full bg-primary" style={{ animationDelay: `${i * 0.2}s` }} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {step === 2 && item && (
+          <section className="mt-6 animate-float-up">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                {KIND_LABEL[kind].emoji} {KIND_LABEL[kind].label} 인식 완료
+              </span>
+            </div>
+            <h1 className="mt-3 text-2xl font-bold">{item.name} 친구가 도착했어요!</h1>
+
+            <div className="mt-6 flex items-end justify-center gap-3">
+              <div className="relative">
+                <div className="size-32 overflow-hidden rounded-3xl border-4 border-mint bg-mint/40 shadow-soft">
+                  {characterUrl ? (
+                    <img src={characterUrl} alt={item.name} className="size-full object-cover" />
+                  ) : !characterReady ? (
+                    <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
+                      <span className="animate-pulse">✨ 변신 중…</span>
+                    </div>
+                  ) : (
+                    <img src={photo} alt={item.name} className="size-full object-cover" />
+                  )}
+                </div>
+                <div className="mt-1 text-center text-xs font-semibold">{item.name}</div>
+              </div>
+              <Dokkaebi size={120} />
+            </div>
+
+            {/* Speech bubble */}
+            <div className="relative mx-auto mt-4 max-w-sm rounded-3xl border border-border bg-card p-5 shadow-soft">
+              <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
+              <div className="text-xs font-semibold text-primary">도깨비가 정리해줬어요!</div>
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {bullets.map((b, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-primary">•</span>
+                    <span className="text-foreground/90">{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-6 flex justify-center gap-2">
+              <button
+                onClick={() => navigate({ to: "/items/$id", params: { id: item.id } })}
+                className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft"
+              >
+                상세 보기
+              </button>
+              <button
+                onClick={() => navigate({ to: "/my" })}
+                className="rounded-full bg-mint px-5 py-2.5 text-sm font-semibold text-foreground"
+              >
+                보관함으로
+              </button>
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
