@@ -672,3 +672,100 @@ function EditField({ label, value, onChange, type = "text" }: { label: string; v
   );
 }
 
+/* ------------------ ManualSections: split summary by category ------------------ */
+
+const SECTION_EMOJI: Record<string, string> = {
+  "제품명": "🏷️", "상품명": "🏷️", "이름": "🏷️",
+  "브랜드": "™️", "제조사": "🏭",
+  "요약": "📝", "개요": "📝", "설명": "📝",
+  "사용 방법": "📖", "사용방법": "📖", "사용법": "📖", "사용 순서": "📖",
+  "주의사항": "⚠️", "주의": "⚠️", "경고": "⚠️",
+  "관리 방법": "🧼", "관리방법": "🧼", "관리": "🧼", "보관": "📦", "보관 방법": "📦",
+  "세탁": "🧺", "세탁 방법": "🧺",
+  "재질": "🧵", "성분": "🧪", "원산지": "🌏",
+  "유의사항": "⚠️", "특징": "✨", "기능": "✨",
+};
+
+function sectionIcon(label: string) {
+  return SECTION_EMOJI[label.trim()] ?? "•";
+}
+
+function parseSummarySections(text: string): { label: string; body: string }[] {
+  if (!text || !text.trim()) return [];
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  // Matches lines like "**제목**: ...", "## 제목", "제목: ...", "- 제목: ..."
+  const headRe = /^[\s\-*•\d\.\)#]*(?:\*\*)?\s*([가-힣A-Za-z][가-힣A-Za-z0-9 _/]{0,18})\s*(?:\*\*)?\s*[:：](.*)$/;
+  const sections: { label: string; body: string }[] = [];
+  let current: { label: string; body: string } | null = null;
+  const flush = () => { if (current && (current.body.trim() || current.label)) sections.push({ label: current.label, body: current.body.trim() }); current = null; };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/g, "");
+    const m = line.match(headRe);
+    if (m) {
+      flush();
+      current = { label: m[1].trim(), body: m[2].trim() };
+    } else if (current) {
+      current.body += (current.body ? "\n" : "") + line.replace(/^\s*[-*•]\s?/, "• ");
+    } else if (line.trim()) {
+      // Free text before any section header → put under "요약"
+      current = { label: "요약", body: line };
+    }
+  }
+  flush();
+  return sections;
+}
+
+function SectionCard({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+      <div className="flex items-center gap-2">
+        <span className="text-lg" aria-hidden>{sectionIcon(label)}</span>
+        <h3 className="text-sm font-bold">{label}</h3>
+      </div>
+      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{body || "—"}</p>
+    </div>
+  );
+}
+
+function ManualSections({ result }: { result: ManualResult }) {
+  const parsed = parseSummarySections(result.summary);
+  // Start with structured fields when present
+  const baseOrder: { label: string; body: string }[] = [];
+  const push = (label: string, body: string) => { if (body && body.trim()) baseOrder.push({ label, body: body.trim() }); };
+  push("제품명", result.name);
+  push("브랜드", result.brand);
+  push("사용 방법", result.usage);
+  push("주의사항", result.cautions);
+  push("관리 방법", result.care);
+
+  // Merge parsed sections: if same label already exists, append non-duplicate content
+  const seen = new Map<string, number>();
+  baseOrder.forEach((s, i) => seen.set(s.label, i));
+  for (const p of parsed) {
+    const key = p.label;
+    const idx = seen.get(key);
+    if (idx == null) {
+      baseOrder.push(p);
+      seen.set(key, baseOrder.length - 1);
+    } else if (!baseOrder[idx].body.includes(p.body)) {
+      baseOrder[idx] = { label: key, body: baseOrder[idx].body + "\n" + p.body };
+    }
+  }
+
+  if (baseOrder.length === 0) {
+    return (
+      <div className="mt-5 rounded-3xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-soft">
+        정리된 내용이 없어요.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {baseOrder.map((s, i) => (
+        <SectionCard key={`${s.label}-${i}`} label={s.label} body={s.body} />
+      ))}
+    </div>
+  );
+}
+
