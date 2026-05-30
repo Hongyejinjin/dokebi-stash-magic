@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { Dokkaebi, toneFromKey } from "@/components/Dokkaebi";
+import { Dokkaebi, toneByIndex } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, useItems } from "@/lib/items-store";
 import { ItemThumb } from "@/components/ItemThumb";
 import { hasWarrantyDday } from "@/lib/item-dates";
+import { displayProductName } from "@/lib/display-name";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -108,17 +109,17 @@ function Index() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {items.slice(0, 6).map((it) => (
+              {items.slice(0, 6).map((it, idx) => (
                 <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
                   <div className="relative aspect-square overflow-hidden bg-mint/40">
-                    <ItemThumb id={it.id} name={it.name} />
+                    <ItemThumb id={it.id} name={displayProductName(it)} />
                     <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-md">
-                      <Dokkaebi size={48} tone={toneFromKey(it.id)} swinging />
+                      <Dokkaebi size={48} tone={toneByIndex(idx)} swinging />
                     </div>
                   </div>
                   <div className="p-3">
                     <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>
-                    <div className="truncate text-sm font-bold">{it.name}</div>
+                    <div className="truncate text-sm font-bold">{displayProductName(it)}</div>
                   </div>
                 </Link>
               ))}
