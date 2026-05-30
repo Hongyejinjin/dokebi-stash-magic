@@ -388,13 +388,15 @@ function ManualFlow() {
     try {
       if (mode === "image") {
         if (!photoFile) throw new Error("이미지 파일이 없어요");
-        const formData = new FormData();
-        formData.append("image", photoFile);
-        const response = await fetch(API.manualImage, { method: "POST", body: formData });
-        if (!response.ok) throw new Error(`서버 오류 (${response.status})`);
-        const data = await response.json();
-        const summary = typeof data?.summary === "string" ? data.summary : "";
-        setResult({ name: "내 새 물건", brand: "", summary, usage: "", cautions: "", care: "" });
+        const data = await postImage(API.manualImage, photoFile);
+        setResult({
+          name:     pick(data, "product_name", "name", "product", "productName", "제품명") || "내 새 물건",
+          brand:    pick(data, "brand", "브랜드"),
+          summary:  pick(data, "summary", "요약"),
+          usage:    pick(data, "usage", "howTo", "사용법", "사용방법"),
+          cautions: pick(data, "cautions", "warning", "주의사항"),
+          care:     pick(data, "care", "maintenance", "관리방법"),
+        });
       } else {
         const data = await callApi(API.manualQr, { type: "manual-qr", qr: qrText.trim() });
         setResult({
