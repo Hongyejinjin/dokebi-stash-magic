@@ -4,10 +4,33 @@ type Props = {
   size?: number;
   swinging?: boolean;
   className?: string;
+  tone?: DokkaebiTone;
 };
 
+export type DokkaebiTone = "mint" | "pink" | "sky" | "lemon" | "lilac" | "peach" | "sage" | "coral";
+
+const TONES: Record<DokkaebiTone, { body: string; belly: string; horn: string }> = {
+  mint:   { body: "oklch(0.88 0.11 165)", belly: "oklch(0.96 0.04 165)", horn: "oklch(0.55 0.09 170)" },
+  pink:   { body: "oklch(0.86 0.10 20)",  belly: "oklch(0.96 0.04 20)",  horn: "oklch(0.55 0.10 25)" },
+  sky:    { body: "oklch(0.86 0.09 235)", belly: "oklch(0.96 0.03 235)", horn: "oklch(0.55 0.10 240)" },
+  lemon:  { body: "oklch(0.91 0.13 95)",  belly: "oklch(0.97 0.05 95)",  horn: "oklch(0.6 0.12 80)"  },
+  lilac:  { body: "oklch(0.85 0.09 305)", belly: "oklch(0.96 0.03 305)", horn: "oklch(0.55 0.11 305)" },
+  peach:  { body: "oklch(0.87 0.10 50)",  belly: "oklch(0.96 0.04 50)",  horn: "oklch(0.58 0.11 50)"  },
+  sage:   { body: "oklch(0.86 0.07 145)", belly: "oklch(0.96 0.03 145)", horn: "oklch(0.5 0.08 150)"  },
+  coral:  { body: "oklch(0.82 0.13 35)",  belly: "oklch(0.95 0.05 35)",  horn: "oklch(0.55 0.13 30)"  },
+};
+
+export const DOKKAEBI_TONES = Object.keys(TONES) as DokkaebiTone[];
+
+export function toneFromKey(key: string): DokkaebiTone {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return DOKKAEBI_TONES[h % DOKKAEBI_TONES.length];
+}
+
 /** Cute baby dokkaebi (goblin) with horns and a wand. */
-export function Dokkaebi({ size = 140, swinging = false, className }: Props) {
+export function Dokkaebi({ size = 140, swinging = false, className, tone = "mint" }: Props) {
+  const t = TONES[tone];
   return (
     <div
       className={cn("relative inline-block", !swinging && "animate-dokkaebi", className)}
@@ -17,12 +40,12 @@ export function Dokkaebi({ size = 140, swinging = false, className }: Props) {
         {/* shadow */}
         <ellipse cx="100" cy="186" rx="48" ry="6" fill="oklch(0.45 0.09 175 / 0.15)" />
         {/* horns */}
-        <path d="M62 56 Q56 32 74 36 Q76 48 78 58 Z" fill="oklch(0.55 0.09 170)" />
-        <path d="M138 56 Q144 32 126 36 Q124 48 122 58 Z" fill="oklch(0.55 0.09 170)" />
+        <path d="M62 56 Q56 32 74 36 Q76 48 78 58 Z" fill={t.horn} />
+        <path d="M138 56 Q144 32 126 36 Q124 48 122 58 Z" fill={t.horn} />
         {/* body */}
-        <ellipse cx="100" cy="110" rx="62" ry="60" fill="oklch(0.88 0.11 165)" />
+        <ellipse cx="100" cy="110" rx="62" ry="60" fill={t.body} />
         {/* belly */}
-        <ellipse cx="100" cy="128" rx="36" ry="30" fill="oklch(0.96 0.04 165)" />
+        <ellipse cx="100" cy="128" rx="36" ry="30" fill={t.belly} />
         {/* cheeks */}
         <circle cx="62" cy="118" r="9" fill="oklch(0.85 0.1 25 / 0.55)" />
         <circle cx="138" cy="118" r="9" fill="oklch(0.85 0.1 25 / 0.55)" />
