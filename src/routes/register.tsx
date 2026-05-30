@@ -115,6 +115,22 @@ async function callApi(url: string, payload: unknown): Promise<Record<string, un
   }
 }
 
+async function postImage(url: string, file: File): Promise<Record<string, unknown>> {
+  const fd = new FormData();
+  fd.append("photo", file, file.name);
+  const res = await fetch(url, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+  const text = await res.text();
+  try {
+    const j = JSON.parse(text);
+    if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
+    if (j && typeof j === "object") return j as Record<string, unknown>;
+    return { summary: String(j) };
+  } catch {
+    return { raw: text };
+  }
+}
+
 function pick(obj: Record<string, unknown>, ...keys: string[]): string {
   for (const k of keys) {
     const v = obj?.[k];
@@ -253,22 +269,28 @@ type ProofResult = { place: string; date: string; price: string; name: string; b
 function ProofFlow() {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [itemId, setItemId] = useState<string>("");
 
   const next = async () => {
-    if (!photo) { setTried(true); return; }
+    if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
-    const data = await callApi(API.proof, { type: "proof", photo });
-    setResult({
-      place: pick(data, "place", "store", "purchasePlace", "구매처"),
-      date:  pick(data, "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
-      price: pick(data, "price", "amount", "구매금액"),
-      name:  pick(data, "name", "product", "productName", "상품명") || "내 새 물건",
-      brand: pick(data, "brand", "브랜드"),
-    });
-    setStep(2);
+    try {
+      const data = await postImage(API.proof, photoFile);
+      setResult({
+        place: pick(data, "store_name", "place", "store", "purchasePlace", "구매처"),
+        date:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || new Date().toISOString().slice(0, 10),
+        price: pick(data, "total_price", "price", "amount", "구매금액"),
+        name:  pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") || "내 새 물건",
+        brand: pick(data, "brand", "브랜드"),
+      });
+      setStep(2);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요");
+      setStep(0);
+    }
   };
 
   const finish = () => {
@@ -293,7 +315,7 @@ function ProofFlow() {
           <p className="mt-1 text-sm text-muted-foreground">영수증, 구매 내역서 등 어떤 증빙이든 좋아요.</p>
           <UploadBox
             photo={photo}
-            onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
+            onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }}
             label="탭하여 증빙 추가"
             hint="PNG · JPG · PDF"
             icon="🧾"
@@ -366,13 +388,15 @@ function ManualFlow() {
     try {
       if (mode === "image") {
         if (!photoFile) throw new Error("이미지 파일이 없어요");
-        const formData = new FormData();
-        formData.append("image", photoFile);
-        const response = await fetch(API.manualImage, { method: "POST", body: formData });
-        if (!response.ok) throw new Error(`서버 오류 (${response.status})`);
-        const data = await response.json();
-        const summary = typeof data?.summary === "string" ? data.summary : "";
-        setResult({ name: "내 새 물건", brand: "", summary, usage: "", cautions: "", care: "" });
+        const data = await postImage(API.manualImage, photoFile);
+        setResult({
+          name:     pick(data, "product_name", "name", "product", "productName", "제품명") || "내 새 물건",
+          brand:    pick(data, "brand", "브랜드"),
+          summary:  pick(data, "summary", "요약"),
+          usage:    pick(data, "usage", "howTo", "사용법", "사용방법"),
+          cautions: pick(data, "cautions", "warning", "주의사항"),
+          care:     pick(data, "care", "maintenance", "관리방법"),
+        });
       } else {
         const data = await callApi(API.manualQr, { type: "manual-qr", qr: qrText.trim() });
         setResult({
@@ -480,26 +504,32 @@ type WarrantyResult = { name: string; brand: string; period: string; start: stri
 function WarrantyFlow() {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<WarrantyResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [itemId, setItemId] = useState<string>("");
 
   const next = async () => {
-    if (!photo) { setTried(true); return; }
+    if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
-    const data = await callApi(API.warranty, { type: "warranty", photo });
-    const start = pick(data, "start", "startDate", "보증시작일") || new Date().toISOString().slice(0, 10);
-    const end   = pick(data, "end", "endDate", "warrantyUntil", "보증종료일") ||
-                  new Date(Date.now() + 365 * 86400_000).toISOString().slice(0, 10);
-    setResult({
-      name:   pick(data, "name", "product", "productName", "제품명") || "내 새 물건",
-      brand:  pick(data, "brand", "브랜드"),
-      period: pick(data, "period", "보증기간") || "1년",
-      start,
-      end,
-    });
-    setStep(2);
+    try {
+      const data = await postImage(API.warranty, photoFile);
+      const start = pick(data, "warranty_start", "start", "startDate", "보증시작일") || new Date().toISOString().slice(0, 10);
+      const end   = pick(data, "warranty_end", "end", "endDate", "warrantyUntil", "보증종료일") ||
+                    new Date(Date.now() + 365 * 86400_000).toISOString().slice(0, 10);
+      setResult({
+        name:   pick(data, "product_name", "name", "product", "productName", "제품명") || "내 새 물건",
+        brand:  pick(data, "brand", "브랜드"),
+        period: pick(data, "warranty_period", "period", "보증기간") || "1년",
+        start,
+        end,
+      });
+      setStep(2);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "분석에 실패했어요");
+      setStep(0);
+    }
   };
 
   const confirm = () => {
@@ -524,7 +554,7 @@ function WarrantyFlow() {
           <p className="mt-1 text-sm text-muted-foreground">보증서를 사진으로 찍어 올려주세요.</p>
           <UploadBox
             photo={photo}
-            onFile={async (f) => { setPhoto(await readFile(f)); setTried(false); }}
+            onFile={async (f) => { setPhotoFile(f); setPhoto(await readFile(f)); setTried(false); }}
             label="탭하여 보증서 추가"
             hint="PNG · JPG · PDF"
             icon="📜"
