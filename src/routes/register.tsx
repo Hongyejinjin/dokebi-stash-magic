@@ -359,7 +359,7 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
 
 type ManualResult = { name: string; brand: string; summary: string; usage: string; cautions: string; care: string };
 
-function ManualFlow() {
+function ManualFlow({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<null | "image" | "qr">(null);
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
@@ -374,6 +374,7 @@ function ManualFlow() {
       <>
         <Stepper steps={["방식 선택", "등록", "분석", "완료"]} current={0} />
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">사용서를 등록하거나 QR코드를 인식해주세요!</h1>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <button onClick={() => setMode("image")} className="rounded-3xl border border-border bg-card p-6 text-left shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
@@ -446,7 +447,7 @@ function ManualFlow() {
       <Stepper steps={["방식 선택", "등록", "분석", "완료"]} current={step + 1 > 3 ? 3 : step + 1} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
-          <button onClick={() => setMode(null)} className="text-xs text-muted-foreground hover:underline">← 방식 다시 선택</button>
+          <BackButton onClick={() => setMode(null)} label="방식 다시 선택" />
           <h1 className="mt-2 text-2xl font-bold">
             {mode === "image" ? "사용서 이미지를 등록해주세요" : "QR 코드를 등록해주세요"}
           </h1>
@@ -483,6 +484,7 @@ function ManualFlow() {
       {step === 1 && <LoadingScene message="이미지를 분석 중입니다..." swinging />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">사용법 정리 결과</h1>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
             <ResultRow label="제품명" value={result.name} />
