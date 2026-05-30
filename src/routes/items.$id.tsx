@@ -49,7 +49,7 @@ function parsePurchaseDate(input: unknown): Date | null {
 
 const DATE_VALUE_PATTERN = String.raw`\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일?|\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{1,2}|\b\d{8}\b|\b\d{1,2}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d{2,4}\b`;
 const PURCHASE_DATE_LABEL_PATTERN = new RegExp(
-  String.raw`(?:구매\s*(?:날짜|일)|구입\s*(?:날짜|일)|수매\s*(?:날짜|일)|결제\s*(?:날짜|일)|거래\s*(?:날짜|일시)|매입\s*(?:날짜|일)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
+  String.raw`(?:구매\s*(?:날짜|일자|일)|구입\s*(?:날짜|일자|일)|수매\s*(?:날짜|일자|일)|결제\s*(?:날짜|일자|일)|거래\s*(?:날짜|일자|일시|일)|매입\s*(?:날짜|일자|일)|주문\s*(?:날짜|일자|일)|승인\s*(?:날짜|일자|일시|일)|영수증\s*(?:날짜|일자|일)|발행\s*(?:날짜|일자|일)|purchase\s*(?:date|day)|order\s*date|payment\s*date|transaction\s*date|receipt\s*date|approved\s*date|issued\s*date)\s*[:：\-–—]?\s*(${DATE_VALUE_PATTERN})`,
   "i",
 );
 const ANY_DATE_PATTERN = new RegExp(`(${DATE_VALUE_PATTERN})`, "i");
@@ -79,17 +79,32 @@ function isPurchaseDateKey(key: string): boolean {
       "transactiondate",
       "receiptdate",
       "구매일",
+      "구매일자",
       "구매날짜",
       "구입일",
+      "구입일자",
       "구입날짜",
       "수매일",
+      "수매일자",
       "수매날짜",
       "결제일",
+      "결제일자",
       "결제날짜",
       "거래일",
+      "거래일자",
       "거래일시",
       "매입일",
+      "매입일자",
       "매입날짜",
+      "주문일",
+      "주문일자",
+      "승인일",
+      "승인일자",
+      "승인일시",
+      "영수증일",
+      "영수증일자",
+      "발행일",
+      "발행일자",
     ].includes(normalized) ||
     (normalized.includes("purchase") && normalized.includes("date"))
   );
@@ -134,21 +149,24 @@ function findPurchaseDateInAnalysis(data: unknown, kind?: DocKind): string | und
 }
 
 function resolvePurchaseDate(item: Item): string | undefined {
-  if (item.purchaseDate && parsePurchaseDate(item.purchaseDate)) return item.purchaseDate;
   const inferredKind =
     item.docKind === "receipt" || hasReceiptSignal(item) ? "receipt" : item.docKind;
+  const storedDate = item.purchaseDate && parsePurchaseDate(item.purchaseDate) ? item.purchaseDate : undefined;
   const analysisDate = findPurchaseDateInAnalysis(item.analysis, inferredKind);
+  const primaryDate = item.analysis
+    ? pickDateFromText(pickPrimaryContent(item.analysis).value, inferredKind === "receipt")
+    : undefined;
+  const textDate =
+    pickDateFromText(item.speech, inferredKind === "receipt") ||
+    pickDateFromText(item.summary, inferredKind === "receipt") ||
+    pickDateFromText(item.usage, inferredKind === "receipt");
+  if (inferredKind === "receipt") return analysisDate || primaryDate || textDate || storedDate;
+  if (storedDate) return storedDate;
   if (analysisDate) return analysisDate;
   if (item.analysis) {
-    const primaryDate = pickDateFromText(
-      pickPrimaryContent(item.analysis).value,
-      inferredKind === "receipt",
-    );
     if (primaryDate) return primaryDate;
   }
-  return (
-    pickDateFromText(item.speech) || pickDateFromText(item.summary) || pickDateFromText(item.usage)
-  );
+  return textDate;
 }
 
 const WARRANTY_END_LABEL_PATTERN = new RegExp(
