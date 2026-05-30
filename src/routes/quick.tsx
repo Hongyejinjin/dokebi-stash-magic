@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
-import { AnalysisView, pickPrimaryContent } from "@/lib/itemProfile-render";
+import { AnalysisView, pickPrimaryContent } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/quick")({
   head: () => ({ meta: [{ title: "통합 등록 — 물건 도깨비" }] }),
@@ -174,7 +174,7 @@ function QuickPage() {
       summary:       summary || undefined,
       careCycle:     pick(data, "care", "maintenance", "관리방법") || undefined,
       speech: lines.join(" · "),
-      itemProfile: data,
+      analysis: data,
     });
 
     setItem(saved);
