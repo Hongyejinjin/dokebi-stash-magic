@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
+import { AnalysisView, pickPrimaryContent } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/quick")({
   head: () => ({ meta: [{ title: "통합 등록 — 물건 도깨비" }] }),
@@ -297,6 +298,7 @@ function QuickPage() {
       summary:       summary || undefined,
       careCycle:     pick(data, "care", "maintenance", "관리방법") || undefined,
       speech: lines.join(" · "),
+      analysis: data,
     });
 
     setItem(saved);
@@ -406,36 +408,11 @@ function QuickPage() {
               </ul>
             </div>
 
-            {/* Full analysis (dynamic) */}
-            {analysis && toEntries(analysis).length > 0 && (
-              <div className="mx-auto mt-4 max-w-sm rounded-3xl border border-border bg-card p-5 shadow-soft">
-                <div className="text-xs font-semibold text-primary">분석 결과</div>
-                <dl className="mt-2 divide-y divide-border/60 text-sm">
-                  {toEntries(analysis).map(([k, v]) => (
-                    <div key={k} className="flex gap-3 py-2">
-                      <dt className="w-24 shrink-0 text-muted-foreground">{k}</dt>
-                      <dd className="flex-1 break-words text-foreground/90">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
+            {analysis && (
+              <div className="mx-auto mt-4 max-w-sm">
+                <AnalysisView data={analysis} />
               </div>
             )}
-
-            {/* Primary content (markdown > html > text) */}
-            {analysis && (() => {
-              const { value, sourceKey } = pickPrimaryContent(analysis);
-              return (
-                <div className="mx-auto mt-4 max-w-sm rounded-3xl border border-border bg-card p-5 shadow-soft">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold text-primary">주요 내용</div>
-                    <div className="text-[10px] text-muted-foreground">source: {sourceKey}</div>
-                  </div>
-                  <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm text-foreground/90">
-                    {value}
-                  </pre>
-                </div>
-              );
-            })()}
 
             <div className="mt-6 flex justify-center gap-2">
               <button
