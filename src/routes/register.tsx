@@ -213,6 +213,17 @@ function PrimaryButton({ onClick, disabled, children }: { onClick: () => void; d
   );
 }
 
+function BackButton({ onClick, label = "이전 단계" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary"
+    >
+      ← {label}
+    </button>
+  );
+}
+
 function LoadingScene({ message, swinging }: { message: string; swinging?: boolean }) {
   return (
     <section className="mt-16 flex flex-col items-center text-center">
