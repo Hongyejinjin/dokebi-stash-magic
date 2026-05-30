@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Dokkaebi, toneFromKey } from "@/components/Dokkaebi";
+import { Dokkaebi, toneByIndex } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, type FeatureKey, useItems } from "@/lib/items-store";
 import { ItemThumb } from "@/components/ItemThumb";
+import { displayProductName } from "@/lib/display-name";
 
 export const Route = createFileRoute("/my")({
   head: () => ({ meta: [{ title: "나의 도깨비 — 물건 보관함" }] }),
@@ -44,17 +45,17 @@ function MyPage() {
           </div>
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((it) => (
+            {filtered.map((it, idx) => (
               <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
                 <div className="relative aspect-square overflow-hidden bg-mint/40">
-                  <ItemThumb id={it.id} name={it.name} className="size-full object-cover transition group-hover:scale-105" />
+                  <ItemThumb id={it.id} name={displayProductName(it)} className="size-full object-cover transition group-hover:scale-105" />
                   <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-md">
-                    <Dokkaebi size={48} tone={toneFromKey(it.id)} swinging />
+                    <Dokkaebi size={48} tone={toneByIndex(idx)} swinging />
                   </div>
                 </div>
                 <div className="p-3">
                   <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>
-                  <div className="truncate text-sm font-bold">{it.name || "이름 없음"}</div>
+                  <div className="truncate text-sm font-bold">{displayProductName(it)}</div>
                   {it.brand && <div className="truncate text-xs text-muted-foreground">{it.brand}</div>}
                 </div>
               </Link>
