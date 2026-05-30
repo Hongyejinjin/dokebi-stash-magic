@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
-import { AnalysisView, pickPrimaryContent } from "@/lib/analysis-render";
+import { AnalysisView, pickPrimaryContent } from "@/lib/itemProfile-render";
 
 export const Route = createFileRoute("/quick")({
   head: () => ({ meta: [{ title: "통합 등록 — 물건 도깨비" }] }),
@@ -129,7 +129,7 @@ function QuickPage() {
   const [item, setItem] = useState<Item | null>(null);
   const [kind, setKind] = useState<DocKind>("item");
   const [bullets, setBullets] = useState<string[]>([]);
-  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [itemProfile, setItemProfile] = useState<Record<string, unknown> | null>(null);
   const [characterUrl, setCharacterUrl] = useState<string>();
   const [characterReady, setCharacterReady] = useState(false);
 
@@ -174,13 +174,13 @@ function QuickPage() {
       summary:       summary || undefined,
       careCycle:     pick(data, "care", "maintenance", "관리방법") || undefined,
       speech: lines.join(" · "),
-      analysis: data,
+      itemProfile: data,
     });
 
     setItem(saved);
     setKind(k);
     setBullets(lines);
-    setAnalysis(data);
+    setItemProfile(data);
     setStep(2);
 
     // Reuse analyze response for character image if present; no extra call.
@@ -284,9 +284,9 @@ function QuickPage() {
               </ul>
             </div>
 
-            {analysis && (
+            {itemProfile && (
               <div className="mx-auto mt-4 max-w-sm">
-                <AnalysisView data={analysis} />
+                <AnalysisView data={itemProfile} />
               </div>
             )}
 
