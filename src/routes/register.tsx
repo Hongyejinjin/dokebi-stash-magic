@@ -274,7 +274,50 @@ function ResultRow({ label, value }: { label: string; value?: string }) {
 
 /* ----------------------------- 1. PROOF ----------------------------- */
 
-type ProofResult = { place: string; date: string; price: string; name: string; brand: string };
+type ProofResult = {
+  place: string;
+  date: string;
+  price: string;
+  name: string;
+  brand: string;
+  summary: string;
+  extras: { label: string; value: string }[];
+  raw: Record<string, unknown>;
+};
+
+const PROOF_PRIMARY_KEYS = new Set([
+  "store_name", "place", "store", "purchasePlace", "구매처",
+  "purchase_date", "date", "purchaseDate", "구매일",
+  "total_price", "price", "amount", "구매금액",
+  "product_name", "name", "product", "productName", "상품명",
+  "brand", "브랜드",
+  "summary", "요약",
+]);
+
+function humanizeKey(k: string): string {
+  return k
+    .replace(/[_\-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function stringifyValue(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+}
+
+function collectExtras(data: Record<string, unknown>): { label: string; value: string }[] {
+  const out: { label: string; value: string }[] = [];
+  for (const [k, v] of Object.entries(data)) {
+    if (PROOF_PRIMARY_KEYS.has(k)) continue;
+    const text = stringifyValue(v);
+    if (!text.trim()) continue;
+    out.push({ label: humanizeKey(k), value: text });
+  }
+  return out;
+}
 
 function ProofFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
@@ -295,6 +338,9 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
         price: pick(data, "total_price", "price", "amount", "구매금액"),
         name:  pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") || "내 새 물건",
         brand: pick(data, "brand", "브랜드"),
+        summary: pick(data, "summary", "요약"),
+        extras: collectExtras(data),
+        raw: data,
       });
       setStep(2);
     } catch (err) {
@@ -313,6 +359,9 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
       purchaseDate: result.date,
       purchasePlace: result.place,
       price: result.price,
+      summary: result.summary || undefined,
+      speech: result.summary || undefined,
+      analysis: result.raw,
     }).then((item) => { setItemId(item.id); setStep(3); });
   };
 
@@ -346,7 +395,21 @@ function ProofFlow({ onBack }: { onBack: () => void }) {
             <ResultRow label="구매처" value={result.place} />
             <ResultRow label="구매일" value={result.date} />
             <ResultRow label="구매 금액" value={result.price} />
+            {result.extras.map((e) => (
+              <div key={e.label}>
+                <div className="text-xs font-semibold text-muted-foreground">{e.label}</div>
+                <p className="mt-1 whitespace-pre-line text-sm text-foreground">{e.value}</p>
+              </div>
+            ))}
           </div>
+          {result.summary && (
+            <div className="mt-4 rounded-3xl border border-border bg-mint/20 p-5 shadow-soft">
+              <div className="text-xs font-bold text-primary">도깨비가 정리한 전체 내용</div>
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+                {result.summary}
+              </p>
+            </div>
+          )}
           <PrimaryButton onClick={finish}>저장하고 마무리</PrimaryButton>
         </section>
       )}
