@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 
-export type FeatureKey = "auto" | "proof" | "manual" | "warranty" | "lost";
+export type FeatureKey = "auto" | "proof" | "manual" | "warranty";
 
 export const FEATURES: Record<FeatureKey, { label: string; emoji: string; desc: string }> = {
   auto:     { label: "통합 등록",    emoji: "✨", desc: "사진 한 장으로 모두 정리" },
   proof:    { label: "증빙 관리",    emoji: "🏆", desc: "영수증·구매 증빙 보관" },
   manual:   { label: "사용법 관리",  emoji: "📖", desc: "설명서 요약·사용 가이드" },
   warranty: { label: "보증 기한 알림", emoji: "⏰", desc: "보증·교환 기간 D-Day" },
-  lost:     { label: "분실 방지",    emoji: "🪄", desc: "소중한 물건 알림" },
 };
 
 export type DocKind = "receipt" | "manual" | "warranty" | "repair" | "item";
