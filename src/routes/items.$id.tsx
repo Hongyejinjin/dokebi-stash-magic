@@ -139,6 +139,7 @@ function ItemDetail() {
   const daysLeft = item.warrantyUntil
     ? Math.ceil((new Date(item.warrantyUntil).getTime() - Date.now()) / 86400_000)
     : null;
+  const purchaseDate = resolvePurchaseDate(item);
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,7 +179,7 @@ function ItemDetail() {
         <div className="relative mt-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
           <div className="absolute -top-2 left-10 size-4 rotate-45 border-l border-t border-border bg-card" />
           <p className="text-sm font-medium text-foreground/90">
-            {daysSinceText(item.purchaseDate)}
+            {daysSinceText(purchaseDate)}
           </p>
         </div>
 
