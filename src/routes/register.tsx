@@ -515,7 +515,7 @@ function ManualFlow({ onBack }: { onBack: () => void }) {
 
 type WarrantyResult = { name: string; brand: string; period: string; start: string; end: string };
 
-function WarrantyFlow() {
+function WarrantyFlow({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [photo, setPhoto] = useState<string>();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -564,6 +564,7 @@ function WarrantyFlow() {
       <Stepper steps={["보증서 등록", "분석", "확인 / 수정", "완료"]} current={step} />
       {step === 0 && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={onBack} label="기능 다시 선택" />
           <h1 className="text-2xl font-bold">보증서를 등록해주세요!</h1>
           <p className="mt-1 text-sm text-muted-foreground">보증서를 사진으로 찍어 올려주세요.</p>
           <UploadBox
@@ -580,6 +581,7 @@ function WarrantyFlow() {
       {step === 1 && <LoadingScene message="도깨비가 보증 정보를 추출하고 있어요!" />}
       {step === 2 && result && (
         <section className="mt-6 animate-float-up">
+          <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">보증 정보를 확인해주세요</h1>
           <p className="mt-1 text-sm text-muted-foreground">필요한 부분은 수정할 수 있어요.</p>
           <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
