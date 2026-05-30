@@ -11,7 +11,6 @@ export const Route = createFileRoute("/quick")({
 });
 
 const API_ANALYZE = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
-const API_CHARACTER = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
 
 function readFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -184,13 +183,9 @@ function QuickPage() {
     if (!photo || !photoFile) { setTried(true); return; }
     setStep(1);
 
-    // Kick off both calls in parallel using FormData.
-    const analyzeP = postImage(API_ANALYZE, photoFile);
-    const characterP = postImage(API_CHARACTER, photoFile).catch(() => ({} as Record<string, unknown>));
-
     let data: Record<string, unknown>;
     try {
-      data = await analyzeP;
+      data = await postImage(API_ANALYZE, photoFile);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "이미지 분석에 실패했어요");
       setStep(0);
@@ -230,15 +225,13 @@ function QuickPage() {
     setAnalysis(data);
     setStep(2);
 
-    // Character can arrive later; reveal when ready.
-    characterP.then(async (cdata) => {
-      const url = pick(cdata, "characterUrl", "url", "image", "character");
-      if (url) {
-        setCharacterUrl(url);
-        await updateItem(saved.id, { characterUrl: url });
-      }
-      setCharacterReady(true);
-    }).catch(() => setCharacterReady(true));
+    // Reuse analyze response for character image if present; no extra call.
+    const url = pick(data, "characterUrl", "url", "image", "character");
+    if (url) {
+      setCharacterUrl(url);
+      await updateItem(saved.id, { characterUrl: url });
+    }
+    setCharacterReady(true);
   }
 
   return (
