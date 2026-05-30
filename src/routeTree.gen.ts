@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as QuickRouteImport } from './routes/quick'
 import { Route as MyRouteImport } from './routes/my'
-import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 
@@ -31,11 +30,6 @@ const MyRoute = MyRouteImport.update({
   path: '/my',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AlertsRoute = AlertsRouteImport.update({
-  id: '/alerts',
-  path: '/alerts',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,7 +43,6 @@ const ItemsIdRoute = ItemsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
   '/my': typeof MyRoute
   '/quick': typeof QuickRoute
   '/register': typeof RegisterRoute
@@ -57,7 +50,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
   '/my': typeof MyRoute
   '/quick': typeof QuickRoute
   '/register': typeof RegisterRoute
@@ -66,7 +58,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
   '/my': typeof MyRoute
   '/quick': typeof QuickRoute
   '/register': typeof RegisterRoute
@@ -74,22 +65,14 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alerts' | '/my' | '/quick' | '/register' | '/items/$id'
+  fullPaths: '/' | '/my' | '/quick' | '/register' | '/items/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alerts' | '/my' | '/quick' | '/register' | '/items/$id'
-  id:
-    | '__root__'
-    | '/'
-    | '/alerts'
-    | '/my'
-    | '/quick'
-    | '/register'
-    | '/items/$id'
+  to: '/' | '/my' | '/quick' | '/register' | '/items/$id'
+  id: '__root__' | '/' | '/my' | '/quick' | '/register' | '/items/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AlertsRoute: typeof AlertsRoute
   MyRoute: typeof MyRoute
   QuickRoute: typeof QuickRoute
   RegisterRoute: typeof RegisterRoute
@@ -119,13 +102,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/alerts': {
-      id: '/alerts'
-      path: '/alerts'
-      fullPath: '/alerts'
-      preLoaderRoute: typeof AlertsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -145,7 +121,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AlertsRoute: AlertsRoute,
   MyRoute: MyRoute,
   QuickRoute: QuickRoute,
   RegisterRoute: RegisterRoute,
@@ -154,3 +129,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
