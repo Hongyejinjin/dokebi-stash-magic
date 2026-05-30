@@ -109,16 +109,16 @@ function Index() {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {items.slice(0, 6).map((it) => (
-                <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
-                  <div className="aspect-square overflow-hidden bg-mint/40">
+                <Link key={it.id} to="/items/$id" params={{ id: it.id }} className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1">
+                  <div className="relative aspect-square overflow-hidden bg-mint/40">
                     <ItemThumb id={it.id} name={it.name} />
+                    <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-md">
+                      <Dokkaebi size={48} tone={toneFromKey(it.id)} swinging />
+                    </div>
                   </div>
                   <div className="p-3">
                     <div className="text-xs text-primary">{FEATURES[it.feature].emoji} {FEATURES[it.feature].label}</div>
                     <div className="truncate text-sm font-bold">{it.name}</div>
-                  </div>
-                  <div className="pointer-events-none absolute bottom-1 right-1 drop-shadow-sm">
-                    <Dokkaebi size={44} tone={toneFromKey(it.id)} swinging />
                   </div>
                 </Link>
               ))}
