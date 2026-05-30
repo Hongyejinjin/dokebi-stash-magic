@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { addItem, updateItem, type DocKind, type Item } from "@/lib/items-store";
-import { AnalysisView, pickPrimaryContent } from "@/lib/analysis-render";
+import { pickPrimaryContent } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/quick")({
   head: () => ({ meta: [{ title: "통합 등록 — 물건 도깨비" }] }),
