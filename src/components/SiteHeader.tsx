@@ -20,6 +20,9 @@ export function SiteHeader() {
           <Link to="/register" className="rounded-full px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition" activeProps={{ className: "rounded-full px-3 py-1.5 text-foreground bg-muted" }}>
             등록
           </Link>
+          <Link to="/alerts" className="rounded-full px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition" activeProps={{ className: "rounded-full px-3 py-1.5 text-foreground bg-muted" }}>
+            ⏰ 보증 알림
+          </Link>
           <Link to="/my" className="rounded-full px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition" activeProps={{ className: "rounded-full px-3 py-1.5 text-foreground bg-muted" }}>
             나의 도깨비
           </Link>
