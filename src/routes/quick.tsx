@@ -156,7 +156,7 @@ function QuickPage() {
       : summarize(k, data);
     const name =
       pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") ||
-      "내 새 친구";
+      KIND_LABEL[k].label;
     const brand = pick(data, "brand", "브랜드");
 
     const saved = await addItem({
