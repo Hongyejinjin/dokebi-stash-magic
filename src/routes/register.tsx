@@ -536,23 +536,7 @@ function ManualFlow({ onBack }: { onBack: () => void }) {
         <section className="mt-6 animate-float-up">
           <BackButton onClick={() => setStep(0)} />
           <h1 className="text-2xl font-bold">사용법 정리 결과</h1>
-          <div className="mt-5 space-y-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
-            <ResultRow label="제품명" value={result.name} />
-            <ResultRow label="브랜드" value={result.brand} />
-            <ResultRow label="요약" value={result.summary} />
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground">사용 방법</div>
-              <p className="mt-1 whitespace-pre-line text-sm">{result.usage || "—"}</p>
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground">주의사항</div>
-              <p className="mt-1 whitespace-pre-line text-sm">{result.cautions || "—"}</p>
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground">관리 방법</div>
-              <p className="mt-1 whitespace-pre-line text-sm">{result.care || "—"}</p>
-            </div>
-          </div>
+          <ManualSections result={result} />
           <PrimaryButton onClick={finish}>저장하고 마무리</PrimaryButton>
         </section>
       )}
