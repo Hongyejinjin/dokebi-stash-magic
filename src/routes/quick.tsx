@@ -24,7 +24,7 @@ function readFile(file: File): Promise<string> {
 
 async function postImage(url: string, file: File): Promise<Record<string, unknown>> {
   const fd = new FormData();
-  fd.append("image", file);
+  fd.append("photo", file, file.name);
   const res = await fetch(url, { method: "POST", body: fd });
   if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
   const text = await res.text();
