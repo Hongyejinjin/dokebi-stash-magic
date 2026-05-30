@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Dokkaebi } from "@/components/Dokkaebi";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
+import { AnalysisView } from "@/lib/analysis-render";
 
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
@@ -88,6 +89,13 @@ function ItemDetail() {
           <Row label="주의사항" value={item.cautions} />
           <Row label="관리 주기" value={item.careCycle} />
         </Section>
+
+        {item.analysis && (
+          <section className="mt-4">
+            <h2 className="mb-3 px-1 text-sm font-bold text-primary">n8n 원본 분석</h2>
+            <AnalysisView data={item.analysis} />
+          </section>
+        )}
 
         <button
           onClick={async () => { await removeItem(item.id); navigate({ to: "/my" }); }}
