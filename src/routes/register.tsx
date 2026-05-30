@@ -753,12 +753,24 @@ function SectionCard({ label, body }: { label: string; body: string }) {
   );
 }
 
+const EXCLUDED_LABELS = new Set(["제품명", "구매날짜", "구매 일자", "구매일", "구매금액", "구매 금액", "가격", "금액", "price", "purchase_date", "purchaseDate"]);
+
+function isExcludedLabel(label: string): boolean {
+  const normalized = label.trim().toLowerCase().replace(/\s+/g, "");
+  return EXCLUDED_LABELS.has(label.trim()) ||
+    normalized.includes("구매날짜") ||
+    normalized.includes("구매일") ||
+    normalized.includes("구매금액") ||
+    normalized.includes("purchaseprice") ||
+    normalized.includes("purchaseamount") ||
+    normalized.includes("purchasedate");
+}
+
 function ManualSections({ result }: { result: ManualResult }) {
   const parsed = parseSummarySections(result.summary);
   // Start with structured fields when present
   const baseOrder: { label: string; body: string }[] = [];
   const push = (label: string, body: string) => { if (body && body.trim()) baseOrder.push({ label, body: body.trim() }); };
-  push("제품명", result.name);
   push("브랜드", result.brand);
   push("사용 방법", result.usage);
   push("주의사항", result.cautions);
@@ -768,6 +780,7 @@ function ManualSections({ result }: { result: ManualResult }) {
   const seen = new Map<string, number>();
   baseOrder.forEach((s, i) => seen.set(s.label, i));
   for (const p of parsed) {
+    if (isExcludedLabel(p.label)) continue;
     const key = p.label;
     const idx = seen.get(key);
     if (idx == null) {
