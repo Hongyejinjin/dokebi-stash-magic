@@ -259,7 +259,7 @@ function ProofFlow() {
 
   const finish = () => {
     if (!result) return;
-    const item = addItem({
+    addItem({
       feature: "proof",
       photo,
       name: result.name,
@@ -267,9 +267,7 @@ function ProofFlow() {
       purchaseDate: result.date,
       purchasePlace: result.place,
       price: result.price,
-    });
-    setItemId(item.id);
-    setStep(3);
+    }).then((item) => { setItemId(item.id); setStep(3); });
   };
 
   return (
@@ -366,7 +364,7 @@ function ManualFlow() {
 
   const finish = () => {
     if (!result) return;
-    const item = addItem({
+    addItem({
       feature: "manual",
       photo,
       name: result.name,
@@ -374,9 +372,7 @@ function ManualFlow() {
       usage: [result.summary, result.usage].filter(Boolean).join("\n\n"),
       cautions: result.cautions,
       careCycle: result.care,
-    });
-    setItemId(item.id);
-    setStep(3);
+    }).then((item) => { setItemId(item.id); setStep(3); });
   };
 
   return (
@@ -478,7 +474,7 @@ function WarrantyFlow() {
 
   const confirm = () => {
     if (!result) return;
-    const item = addItem({
+    addItem({
       feature: "warranty",
       photo,
       name: result.name,
@@ -486,9 +482,7 @@ function WarrantyFlow() {
       purchaseDate: result.start,
       warrantyUntil: result.end,
       asInfo: `보증기간 ${result.period}`,
-    });
-    setItemId(item.id);
-    setStep(3);
+    }).then((item) => { setItemId(item.id); setStep(3); });
   };
 
   return (
@@ -583,14 +577,14 @@ function LostFlow() {
     setStep(1);
   };
 
-  const finish = () => {
-    const item = addItem({
+  const finish = async () => {
+    const item = await addItem({
       feature: "lost",
       photo,
       name: name || "소중한 물건",
       purchasePlace: place,
+      cautions: place ? `마지막 위치: ${place}` : undefined,
     });
-    updateItem(item.id, { cautions: place ? `마지막 위치: ${place}` : undefined });
     setItemId(item.id);
     setStep(2);
   };
