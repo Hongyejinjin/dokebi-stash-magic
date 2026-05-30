@@ -28,13 +28,34 @@ async function postImage(url: string, file: File): Promise<Record<string, unknow
   const res = await fetch(url, { method: "POST", body: fd });
   if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
   const text = await res.text();
-  try {
-    const j = JSON.parse(text);
-    if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
-    return j as Record<string, unknown>;
-  } catch {
-    return { summary: text };
+  return extractJson(text);
+}
+
+function extractJson(text: string): Record<string, unknown> {
+  const tryParse = (s: string) => {
+    const v = JSON.parse(s);
+    if (Array.isArray(v)) return (v[0] ?? {}) as Record<string, unknown>;
+    if (v && typeof v === "object") return v as Record<string, unknown>;
+    return { summary: String(v) };
+  };
+  try { return tryParse(text); } catch {}
+  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const start = cleaned.search(/[\{\[]/);
+  if (start !== -1) {
+    const isArr = cleaned[start] === "[";
+    const end = cleaned.lastIndexOf(isArr ? "]" : "}");
+    if (end > start) {
+      cleaned = cleaned.slice(start, end + 1);
+      try { return tryParse(cleaned); } catch {}
+      const repaired = cleaned
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1F\x7F]/g, "");
+      try { return tryParse(repaired); } catch {}
+    }
   }
+  return { summary: text };
 }
 
 function pick(obj: Record<string, unknown>, ...keys: string[]): string {
@@ -47,11 +68,18 @@ function pick(obj: Record<string, unknown>, ...keys: string[]): string {
 }
 
 function detectKind(d: Record<string, unknown>): DocKind {
+  const dt = typeof d?.document_type === "string" ? d.document_type.toLowerCase() : "";
+  if (dt) {
+    if (/receipt|영수증/.test(dt)) return "receipt";
+    if (/warranty|보증/.test(dt)) return "warranty";
+    if (/manual|설명서|사용/.test(dt)) return "manual";
+    if (/repair|수리/.test(dt)) return "repair";
+  }
   const hay = JSON.stringify(d).toLowerCase();
   if (/(warranty|보증)/.test(hay)) return "warranty";
   if (/(repair|수리|교체)/.test(hay)) return "repair";
   if (/(manual|설명서|사용법|usage|caution)/.test(hay)) return "manual";
-  if (/(receipt|영수증|구매처|price|amount|구매금액)/.test(hay)) return "receipt";
+  if (/(receipt|영수증|구매처|purchase_date|store_name|total_price|price|amount|구매금액)/.test(hay)) return "receipt";
   return "item";
 }
 
@@ -62,6 +90,53 @@ const KIND_LABEL: Record<DocKind, { label: string; emoji: string }> = {
   repair:   { label: "수리 내역", emoji: "🛠️" },
   item:     { label: "물건",  emoji: "📦" },
 };
+
+const FIELD_LABEL: Record<string, string> = {
+  purchase_date: "구매일",
+  store_name: "상호명",
+  total_price: "결제금액",
+  product_name: "상품명",
+  brand: "브랜드",
+  model: "모델",
+  serial: "시리얼",
+  warranty_period: "보증 기간",
+  warranty_start: "보증 시작일",
+  warranty_end: "보증 만료일",
+  document_type: "문서 종류",
+  summary: "요약",
+  usage: "사용법",
+  cautions: "주의사항",
+  care: "관리법",
+  name: "이름",
+  date: "일자",
+  place: "장소",
+  store: "상호명",
+  price: "금액",
+  amount: "금액",
+};
+
+function labelize(key: string): string {
+  if (FIELD_LABEL[key]) return FIELD_LABEL[key];
+  return key.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatValue(key: string, value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "object") {
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
+  const s = String(value);
+  if (/price|amount|금액/i.test(key) && /^\d+(\.\d+)?$/.test(s)) {
+    return `${Number(s).toLocaleString()}원`;
+  }
+  return s;
+}
+
+function toEntries(d: Record<string, unknown>): Array<[string, string]> {
+  return Object.entries(d)
+    .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+    .map(([k, v]) => [labelize(k), formatValue(k, v)] as [string, string]);
+}
 
 function summarize(kind: DocKind, d: Record<string, unknown>): string[] {
   const out: string[] = [];
@@ -101,6 +176,7 @@ function QuickPage() {
   const [item, setItem] = useState<Item | null>(null);
   const [kind, setKind] = useState<DocKind>("item");
   const [bullets, setBullets] = useState<string[]>([]);
+  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
   const [characterUrl, setCharacterUrl] = useState<string>();
   const [characterReady, setCharacterReady] = useState(false);
 
@@ -127,7 +203,8 @@ function QuickPage() {
     const k: DocKind = hasReceipt ? "receipt" : detectKind(data);
     const lines = summary ? [summary] : summarize(k, data);
     const name =
-      pick(data, "name", "product", "productName", "상품명", "store_name") || "내 새 친구";
+      pick(data, "product_name", "name", "product", "productName", "상품명", "store_name") ||
+      "내 새 친구";
     const brand = pick(data, "brand", "브랜드");
 
     const saved = await addItem({
@@ -139,7 +216,7 @@ function QuickPage() {
       purchaseDate:  pick(data, "purchase_date", "date", "purchaseDate", "구매일") || undefined,
       purchasePlace: pick(data, "store_name", "place", "store", "구매처") || undefined,
       price:         pick(data, "total_price", "price", "amount", "구매금액") || undefined,
-      warrantyUntil: pick(data, "end", "endDate", "warrantyUntil", "보증종료일") || undefined,
+      warrantyUntil: pick(data, "warranty_end", "end", "endDate", "warrantyUntil", "보증종료일") || undefined,
       usage:         pick(data, "usage", "사용법", "사용방법") || undefined,
       cautions:      pick(data, "cautions", "warning", "주의사항") || undefined,
       summary:       summary || undefined,
@@ -150,6 +227,7 @@ function QuickPage() {
     setItem(saved);
     setKind(k);
     setBullets(lines);
+    setAnalysis(data);
     setStep(2);
 
     // Character can arrive later; reveal when ready.
@@ -254,6 +332,21 @@ function QuickPage() {
                 ))}
               </ul>
             </div>
+
+            {/* Full analysis (dynamic) */}
+            {analysis && toEntries(analysis).length > 0 && (
+              <div className="mx-auto mt-4 max-w-sm rounded-3xl border border-border bg-card p-5 shadow-soft">
+                <div className="text-xs font-semibold text-primary">분석 결과</div>
+                <dl className="mt-2 divide-y divide-border/60 text-sm">
+                  {toEntries(analysis).map(([k, v]) => (
+                    <div key={k} className="flex gap-3 py-2">
+                      <dt className="w-24 shrink-0 text-muted-foreground">{k}</dt>
+                      <dd className="flex-1 break-words text-foreground/90">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
 
             <div className="mt-6 flex justify-center gap-2">
               <button
