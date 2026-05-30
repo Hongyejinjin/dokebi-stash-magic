@@ -5,6 +5,26 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { FEATURES, getItem, removeItem, useItemImages, type Item } from "@/lib/items-store";
 import { pickPrimaryContent } from "@/lib/analysis-render";
 
+function parsePurchaseDate(input: string): Date | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  // Korean: 2024년 5월 20일
+  const kr = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if (kr) return new Date(Date.UTC(+kr[1], +kr[2] - 1, +kr[3]));
+  // YYYY[-./]MM[-./]DD
+  const ymd = s.match(/^(\d{4})[-./\s](\d{1,2})[-./\s](\d{1,2})/);
+  if (ymd) return new Date(Date.UTC(+ymd[1], +ymd[2] - 1, +ymd[3]));
+  // DD[-./]MM[-./]YYYY
+  const dmy = s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})/);
+  if (dmy) {
+    let y = +dmy[3];
+    if (y < 100) y += 2000;
+    return new Date(Date.UTC(y, +dmy[2] - 1, +dmy[1]));
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
 export const Route = createFileRoute("/items/$id")({
   head: () => ({ meta: [{ title: "물건 상세 — 물건 도깨비" }] }),
   component: ItemDetail,
