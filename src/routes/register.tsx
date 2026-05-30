@@ -115,6 +115,22 @@ async function callApi(url: string, payload: unknown): Promise<Record<string, un
   }
 }
 
+async function postImage(url: string, file: File): Promise<Record<string, unknown>> {
+  const fd = new FormData();
+  fd.append("photo", file, file.name);
+  const res = await fetch(url, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+  const text = await res.text();
+  try {
+    const j = JSON.parse(text);
+    if (Array.isArray(j) && j[0]) return j[0] as Record<string, unknown>;
+    if (j && typeof j === "object") return j as Record<string, unknown>;
+    return { summary: String(j) };
+  } catch {
+    return { raw: text };
+  }
+}
+
 function pick(obj: Record<string, unknown>, ...keys: string[]): string {
   for (const k of keys) {
     const v = obj?.[k];
