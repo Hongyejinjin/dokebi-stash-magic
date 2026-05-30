@@ -57,30 +57,18 @@ function Index() {
         <section className="mt-10">
           <h2 className="mb-4 text-xl font-bold">원하는 관리 기능을 골라보세요</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {(Object.keys(FEATURES) as (keyof typeof FEATURES)[]).map((k) =>
-              k === "warranty" ? (
-                <Link
-                  key={k}
-                  to="/alerts"
-                  className="group rounded-3xl border border-border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-glow"
-                >
-                  <div className="text-3xl">{FEATURES[k].emoji}</div>
-                  <div className="mt-3 text-sm font-bold text-foreground">{FEATURES[k].label}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{FEATURES[k].desc}</div>
-                </Link>
-              ) : (
-                <Link
-                  key={k}
-                  to="/register"
-                  search={{ feature: k }}
-                  className="group rounded-3xl border border-border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-glow"
-                >
-                  <div className="text-3xl">{FEATURES[k].emoji}</div>
-                  <div className="mt-3 text-sm font-bold text-foreground">{FEATURES[k].label}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{FEATURES[k].desc}</div>
-                </Link>
-              ),
-            )}
+            {(Object.keys(FEATURES) as (keyof typeof FEATURES)[]).map((k) => (
+              <Link
+                key={k}
+                to="/register"
+                search={{ feature: k }}
+                className="group rounded-3xl border border-border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-glow"
+              >
+                <div className="text-3xl">{FEATURES[k].emoji}</div>
+                <div className="mt-3 text-sm font-bold text-foreground">{FEATURES[k].label}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{FEATURES[k].desc}</div>
+              </Link>
+            ))}
           </div>
         </section>
 
