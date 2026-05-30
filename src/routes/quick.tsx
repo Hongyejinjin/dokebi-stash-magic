@@ -10,7 +10,7 @@ export const Route = createFileRoute("/quick")({
   component: QuickPage,
 });
 
-const API_ANALYZE = "https://hjinjin.app.n8n.cloud/webhook-test/my-hackerthon2";
+const API_ANALYZE = "https://hjinjin.app.n8n.cloud/webhook-test/item-goblin-mvp";
 
 function readFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
